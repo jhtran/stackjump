@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROJURL="http://github.com/jhtran/kickstack_skeleton"
+PROJURL="http://github.com/jhtran/stackjump_skeleton"
 DISTURL=" http://us.archive.ubuntu.com/ubuntu/dists"
 USAGE="$0 options
   -p preseed (or use [-d|-g] but -p will take precedence)

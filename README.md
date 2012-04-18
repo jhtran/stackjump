@@ -14,8 +14,18 @@ $ gem install stackjump
 
 ## Usage
 
-gem -h
+$ stackjump 
+stackjump options
+  -p preseed (or use [-d|-g] but -p will take precedence)
+  -d directory (preseed.cfg must exist in dir root)
+  -g github repo (must be github hosted)
+  -a architecture [i386|amd64]
+  -r release_codename (lsb_release -c)
+  -o <file> Write output to <file> instead of custom.iso
+  -k keep tmp dir
+
+  See http://github.com/jhtran/stackjump_skeleton
 
 # Examples
 
-TODO
+$
