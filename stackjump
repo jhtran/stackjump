@@ -55,6 +55,7 @@ if [ $PFILE ]; then
     SEED_WARN="Warning: $CDIR contains a preseed.cfg but -p $PRESEED takes precedence"
   fi
 fi
+
 if [ $CDIR ]; then
   if [ ! -d $CDIR ]; then
     echo "Directory $CDIR invalid" && exit 1
@@ -83,7 +84,7 @@ if [ $ARCH != 'i386' ] && [ $ARCH != 'amd64' ]; then
 fi
 
 if [ ! $REL ]; then
-  REL='natty'
+    REL='natty'
 fi
 RELURL="$DISTURL/$REL/"
 HEAD=`curl -s --head $RELURL|head -1`
@@ -140,7 +141,7 @@ kernel linux
 append auto ramdisk_size=14984 initrd=initrd.gz vga=normal DEBCONF_DEBUG=5
 EOF
 
-cp $PRESEED $INITRD
+cp $PRESEED "$INITRD/preseed.cfg"
 ROOTD="$INITRD/root_skel/root"
 CHEFS="$ROOTD/chef-solo/cookbooks/chef-server"
 mkdir -p $CHEFS/files/default $CHEFS/recipes
