@@ -105,12 +105,11 @@ if [ $GITH ]; then
     echo "$GITH invalid github repo.  (Should be git@github.com:username/reponame)" && exit 1
   fi
   echo "Exporting github repo..."
-  GITDIR=`curl -ks https://nodeload.github.com/$GITNAME/tarball/master|tar -zxv $TMPDIR|head -1`
+  GITDIR="$TMPDIR/`(cd $TMPDIR ; curl -ks https://nodeload.github.com/$GITNAME/tarball/master|tar -zxv|head -1)`"
   if [ ! $GITDIR ]; then
     echo "Unable to download repo tarball" && exit 1
   fi
   CDIR=$GITDIR
-  checkdir 'Github repo'
   if [ $PFILE ]; then
     echo "$SEED_WARN"
   else
