@@ -10,7 +10,7 @@ Useful for standing up the first admin server in a network deployment such as fo
 
 ## Installation
 
-$ gem install stackjump
+Just download the stackjump script and execute it
 
 ## Usage
 
