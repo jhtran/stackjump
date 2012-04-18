@@ -26,7 +26,7 @@ stackjump options
 
   See http://github.com/jhtran/stackjump_skeleton
 
-# Examples
+## Examples
 
 - Simplest run, just give it your preseed file
 $ stackjump -p mypreseed.cfg 
