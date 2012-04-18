@@ -30,11 +30,9 @@ stackjump options
 
 Simplest run, just give it your preseed file
 
-<blockquote>
 	$ stackjump -p mypreseed.cfg 
 	Downloading linux files..
 	custom.iso successfully created
-</blockquote>
 
 - Run if you want to keep the temp directory around
 
