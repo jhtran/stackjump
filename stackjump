@@ -105,7 +105,7 @@ if [ $GITH ]; then
     echo "$GITH invalid github repo.  (Should be git@github.com:username/reponame)" && exit 1
   fi
   echo "Exporting github repo..."
-  OUTPUT=`(cd $TMPDIR ; curl -ks https://nodeload.github.com/$GITNAME/tarball/master|tar -zxv)`
+  OUTPUT=`(cd $TMPDIR ; curl -kLs https://github.com/$GITNAME/tarball/master|tar -zxv)`
   GITDIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
   if [ ! $GITDIR ]; then
     echo "Unable to download repo tarball" && exit 1
