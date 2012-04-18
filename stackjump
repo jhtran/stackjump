@@ -44,6 +44,9 @@ mkdir -p $ISODIR $INITRD
 
 ## SANITY CHECKS ##
 
+if [ ! $PFILE ] && [ ! $CDIR ] && [ ! $GITH ]; then
+  echo "$USAGE" && exit 1
+fi
 if ([ $GITH ] && [ $CDIR ]) ; then
   echo "Use only one of the -d or -g flags." && exit 1
 fi
@@ -64,6 +67,9 @@ if [ $CDIR ]; then
       echo "$SEED_WARN"
     else
       PRESEED="$CDIR/preseed.cfg"
+      if [ ! -f $PRESEED ]; then
+        echo "$CDIR/preseed.cfg doesn't exist" && exit 1
+      fi
     fi
   fi
 fi
@@ -109,6 +115,9 @@ if [ $GITH ]; then
     echo "$SEED_WARN"
   else
     PRESEED="$GITDIR/preseed.cfg"
+    if [ ! -f $PRESEED ]; then
+        echo "$GITDIR/preseed.cfg doesn't exist" && exit 1
+    fi
   fi
 fi
 
