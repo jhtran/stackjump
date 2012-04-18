@@ -45,9 +45,9 @@ Use this if you want files to be injected into the OS at runtime
 NOTE: if you decide to include a preseed, it must be named 'preseed.cfg'
 and must be located in the root of the dir you'll be using
 
-	$ mkdir -p /tmp/root_skel/home/ubuntu /tmp/root_skel/etc
+	$ mkdir -p /tmp/root_skel/home/ubuntu/.ssh /tmp/root_skel/etc
 	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
-	$ cp myfile /tmp/root_skel/home/ubuntu
+	$ cp mypubkeys /tmp/root_skel/home/ubuntu/.ssh/authorized_keys
 	$ cp /etc/some.config /tmp/root_skel/etc
 	$ stackjump -d /tmp/root_skel
 
