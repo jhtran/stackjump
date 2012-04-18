@@ -1,0 +1,219 @@
+#!/bin/sh
+
+PROJURL="http://github.com/jhtran/kickstack_skeleton"
+DISTURL=" http://us.archive.ubuntu.com/ubuntu/dists"
+USAGE="$0 options
+  -p preseed (or use [-d|-g] but -p will take precedence)
+  -d directory (preseed.cfg must exist in dir root)
+  -g github repo (must be github hosted)
+  -a architecture [i386|amd64]
+  -r release_codename (lsb_release -c)
+  -o <file> Write output to <file> instead of custom.iso
+  -k keep tmp dir
+
+  See $PROJURL"
+
+if [ ! $1 ]; then
+  echo "$USAGE" && exit 1
+else
+  while [ $1 ];do
+    case $1 in
+      -p) shift
+          PFILE=$1;;
+      -d) shift
+          CDIR=$1;;
+      -g) shift
+          GITH=$1;;
+      -a) shift
+          ARCH=$1;;
+      -r) shift
+          REL=$1;;
+      -o) shift
+          ISO=$1;;
+      -k) KEEP=1;;
+    esac
+    shift
+  done
+fi
+
+DATETIME=`date +%m%d%y%H%M`
+TMPDIR="/tmp/$DATETIME"
+ISODIR="$TMPDIR/ISO"
+INITRD="$TMPDIR/initrd"
+mkdir -p $ISODIR $INITRD
+
+## SANITY CHECKS ##
+
+if ([ $GITH ] && [ $CDIR ]) ; then
+  echo "Use only one of the -d or -g flags." && exit 1
+fi
+if [ $PFILE ]; then
+  if [ ! -f $PFILE ]; then
+    echo "$PFILE not a valid preseed file" && exit 1
+  else
+    PRESEED=$PFILE
+    SEED_WARN="Warning: $CDIR contains a preseed.cfg but -p $PRESEED takes precedence"
+  fi
+fi
+if [ $CDIR ]; then
+  if [ ! -d $CDIR ]; then
+    echo "Directory $CDIR invalid" && exit 1
+  else
+    if [ $PFILE ]; then 
+      echo "$SEED_WARN"
+    else
+      PRESEED="$CDIR/preseed.cfg"
+    fi
+  fi
+fi
+
+if [ ! $ISO ]; then
+  ISO='custom.iso'
+fi
+
+if [ ! $ARCH ]; then
+  ARCH=`arch`
+fi
+case $ARCH in
+  'i686') ARCH='i386';;
+  'x86_64') ARCH='amd64';;
+esac
+if [ $ARCH != 'i386' ] && [ $ARCH != 'amd64' ]; then
+  echo "Architecture $ARCH is not valid.  (amd64|i386)" && exit 1
+fi
+
+if [ ! $REL ]; then
+  REL='natty'
+fi
+RELURL="$DISTURL/$REL/"
+HEAD=`curl -s --head $RELURL|head -1`
+HCODE=`expr "$HEAD" : 'HTTP\/... \(...\) '`
+if [ "$HCODE" != '200' ]; then
+  echo "Release $REL invalid" && exit 0
+fi
+
+if [ $GITH ]; then
+  GITNAME=`expr $GITH : 'git@github.com:\(.*\).git'`
+  if [ ! $GITNAME ]; then
+    echo "$GITH invalid github repo.  (Should be git@github.com:username/reponame)" && exit 1
+  fi
+  echo "Exporting github repo..."
+  GITDIR=`curl -ks https://nodeload.github.com/$GITNAME/tarball/master|tar -zxv $TMPDIR|head -1`
+  if [ ! $GITDIR ]; then
+    echo "Unable to download repo tarball" && exit 1
+  fi
+  CDIR=$GITDIR
+  checkdir 'Github repo'
+  if [ $PFILE ]; then
+    echo "$SEED_WARN"
+  else
+    PRESEED="$GITDIR/preseed.cfg"
+  fi
+fi
+
+## MAKING THE ISO ##
+echo "Downloading linux files.."
+FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
+curl $FURL/linux -o $ISODIR/linux
+if [ ! -f $ISODIR/linux ]; then
+  echo "Unable to download linux" && exit 1
+fi
+(cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
+if [ ! -f $INITRD/init ]; then
+  echo "Unable to download initrd.gz" && exit 1
+fi
+# let me know if you find a better url for isolinux.bin
+BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
+curl $BURL -o $ISODIR/isolinux.bin
+
+cat>"$ISODIR/isolinux.cfg"<<EOF
+prompt 0
+timeout 2
+menu hshift 13
+menu width 49
+menu margin 8
+default autoinstall
+
+label autoinstall
+MENU LABEL AUTOMATED INSTALL
+kernel linux
+append auto ramdisk_size=14984 initrd=initrd.gz vga=normal DEBCONF_DEBUG=5
+EOF
+
+cp $PRESEED $INITRD
+ROOTD="$INITRD/root_skel/root"
+CHEFS="$ROOTD/chef-solo/cookbooks/chef-server"
+mkdir -p $CHEFS/files/default $CHEFS/recipes
+
+if [ ! -f $ROOTD/chef-solo/solo.rb ]; then
+  cat>$ROOTD/chef-solo/solo.rb<<EOF
+file_cache_path "/root/chef-solo"
+cookbook_path "/root/chef-solo/cookbooks"
+EOF
+fi
+
+if [ ! -f $ROOTD/chef-solo/solo.json ]; then
+  cat>$ROOTD/chef-solo/solo.json<<EOF
+{
+  "run_list": [ "recipe[chef-server::default]" ]
+}
+EOF
+fi
+
+RANDOMPW=`cat /dev/urandom| tr -dc 'a-zA-Z0-9' | fold -w 10| head -n 1`
+CHEFSEED="$CHEFS/files/default/chef-server.seed"
+if [ ! -f $CHEFSEED ]; then
+  echo "chef-server-webui chef-server-webui/admin_password password $RANDOMPW" >> $CHEFSEED
+  echo "chef-solr chef-solr/amqp_password password $RANDOMPW" >> $CHEFSEED
+fi
+
+RECIPE="$CHEFS/recipes/default.rb"
+if [ ! -f $RECIPE ]; then
+  cat>$RECIPE<<EOF
+package 'chef-server' do
+action :install
+  response_file "chef-server.seed"
+end
+EOF
+fi
+
+FRUN="$ROOTD/first_run.sh"
+if [ ! -f $FRUN ]; then
+  cat>$FRUN<<EOF
+#!/bin/sh
+apt-get update
+CFDIR="/root/chef-solo"
+update-grub
+chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
+sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
+EOF
+fi
+
+if [ ! -f $ROOTD/late_command.sh ]; then
+  cat>$ROOTD/late_command.sh<<EOF
+#!/bin/sh
+mkdir /root/.ssh
+chmod 700 /root/.ssh /root/first_run.sh
+mv /root/authorized_keys /root/.ssh
+chmod 400 /root/.ssh/authorized_keys
+sed -i 's,quiet splash,quiet,' /etc/default/grub
+echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
+sed -i 's,exit 0,sh /root/first_run.sh,' /etc/rc.local;
+EOF
+fi
+
+# make the new initrd.gz
+(cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/initrd.gz)
+
+# iso it up
+mkisofs -q -r -V "Custom Install" -cache-inodes -J -l -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
+if [ ! -f $ISO ]; then
+  echo "Create ISO failed." && exit 1
+else
+  if [ $KEEP ]; then
+    echo "Temp dir: $TMPDIR"
+  else
+    rm -rf $TMPDIR
+  fi
+  echo "$ISO successfully created" && exit 0
+fi
