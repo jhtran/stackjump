@@ -72,7 +72,7 @@ Specify an architecture (i386 or amd64) if diff than your workstation
 
 	$ stackjump -p mypreseed.cfg -a amd64
 
-Specify an Ubuntu distro codename diff than the default (natty)
+Specify an Ubuntu distro codename other than the default (natty)
 
 	$ stackjump -p mypreseed.cfg -r oneiric
 	$ stackjump -p mypreseed.cfg -r precise -a amd64
