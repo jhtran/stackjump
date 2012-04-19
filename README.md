@@ -59,6 +59,7 @@ See [stackjump_skeleton](http://github.com/jhtran/stackjump_skeleton) as an exam
 	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
 	$ cp mypubkeys /tmp/root_skel/home/ubuntu/.ssh/authorized_keys
 	$ cp /etc/some.config /tmp/root_skel/etc
+
 	$ stackjump -d /tmp/root_skel
 
 Using -p preseed arg with a -d or a -g will use the preseed from -p 
