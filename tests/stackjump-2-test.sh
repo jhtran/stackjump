@@ -75,14 +75,10 @@ it_uses_stackjump_files_when_dir_already_haz() {
   teardown $RANDOMD
   ROOT_HOME="$TMPDIR/initrd/root_skel/root"
   SOLOD="$ROOT_HOME/chef-solo"
-  test `wc -l $SOLOD/solo.json|awk '{print $1}'` = 1
-  test "`cat $SOLOD/solo.json`" = 'dir_solo.json'
-  test `wc -l $SOLOD/solo.rb|awk '{print $1}'` = 1
-  test "`cat $SOLOD/solo.rb`" = 'dir_solo.rb'
-  test `wc -l $ROOT_HOME/late_command.sh|awk '{print $1}'` = 1
-  test "`cat $ROOT_HOME/late_command.sh`" = 'dir_late_command.sh'
-  test `wc -l $ROOT_HOME/first_run.sh|awk '{print $1}'` = 1
-  test "`cat $ROOT_HOME/first_run.sh`" = 'dir_first_run.sh'
+  for i in $SOLOD/solo.json $SOLOD/solo.rb $ROOT_HOME/late_command.sh $ROOT_HOME/first_run.sh; do
+    test "`wc -l $i|awk '{print $1}'`" = 1
+    test `cat $i` = "dir_`basename $i`"
+  done
   teardown $TMPDIR
 }
 

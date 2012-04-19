@@ -102,7 +102,7 @@ HEAD=`curl -s --head $RELURL|head -1`
 HCODE=`expr "$HEAD" : 'HTTP\/... \(...\) '`
 if [ "$HCODE" != '200' ]; then
   echo "Release $REL invalid."
-  echo "Check $DISTURL to make sure a valid release codename" && exit 0
+  echo "Check $DISTURL to make sure a valid release codename" && exit 1
 fi
 
 if [ $GITH ]; then

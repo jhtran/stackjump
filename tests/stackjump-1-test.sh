@@ -108,11 +108,14 @@ it_complains_invalid_release_codename() {
   teardown $PRESEED
 }
 
-it_allows_valid_ubuntu_release_other_than_natty() {
+it_allows_other_valid_ubuntu_release() {
   PRESEED=`randomf`
   sj -p $PRESEED -r precise
+  sj -p $PRESEED -r maverick
+  sj -p $PRESEED -r oneiric
   teardown $PRESEED
 }
+
 
 it_complains_github_url_bad() {
   ! sj -g blah@somebadgit.com
@@ -123,6 +126,7 @@ it_complains_github_url_bad() {
 
 it_allows_valid_github_repo() {
   sj -g $GITREPO
+  teardown
 }
 
 it_complains_github_repo_no_preseed() {

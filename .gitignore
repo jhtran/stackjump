@@ -1,3 +1,4 @@
 *.iso
 .roundup.*
 .*.swp
+temp-test.sh
