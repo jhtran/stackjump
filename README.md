@@ -30,7 +30,7 @@ Just download the stackjump script and execute it
 
 ## Examples
 
-Simplest run, just give it your preseed file.  If you don't have one, grab [default preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).
+Simplest run, just give it your preseed file.  If you don't have one, grab [example preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).
 
 	$ stackjump -p mypreseed.cfg 
 	Downloading linux files..
