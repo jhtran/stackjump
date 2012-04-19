@@ -67,10 +67,10 @@ it_uses_stackjump_files_when_dir_already_haz() {
   RANDOMD=`randomd`
   touch $RANDOMD/preseed.cfg
   mkdir -p $RANDOMD/root/chef-solo
-  echo "dir_solo.json" > $RANDOMD/root/chef-solo/solo.json
-  echo "dir_solo.rb" > $RANDOMD/root/chef-solo/solo.rb
-  echo "dir_late_command.sh" > $RANDOMD/root/late_command.sh
-  echo "dir_first_run.sh" > $RANDOMD/root/first_run.sh
+  RAND_ROOT="$RANDOMD/root"
+  for i in chef-solo/solo.json chef-solo/solo.rb late_command.sh first_run.sh; do
+    echo "dir_`basename $i`" >> $RAND_ROOT/$i
+  done
   TMPDIR=`sj -d $RANDOMD -k|grep Temp|awk '{print $3}'`
   teardown $RANDOMD
   ROOT_HOME="$TMPDIR/initrd/root_skel/root"
