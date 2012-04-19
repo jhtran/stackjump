@@ -1,39 +1,6 @@
-#!/usr/local/bin/roundup
+#!/usr/bin/env roundup
 
-PATH="$PATH:.."
-alias sj="stackjump -t "
-
-randomn() {
-  echo "/tmp/`cat /dev/urandom| tr -dc 'a-zA-Z0-9' | fold -w 10| head -n 1`"
-}
-randomf() {
-  RANDOM=`randomn`
-  echo "preseed_file" > $RANDOM
-  echo $RANDOM
-}
-randomd() {
-  RANDOM=`randomn`
-  mkdir $RANDOM
-  echo "preseed_dir" > $RANDOM/preseed.cfg
-  echo $RANDOM
-}
-
-teardown() {
-  for i in $@; do
-    if [ -d $i ]; then
-      if [ `expr "$i" : '/tmp'` ]; then  
-        rm -rf $i
-      fi
-    elif [ -f $i ]; then
-      if [ `expr "$i" : '/tmp'` ]; then  
-        rm -f $i
-      fi
-    fi
-  done
-  if [ -f custom.iso ]; then
-    rm -f custom.iso
-  fi
-}
+. ./test_helper.sh
 
 it_reqs_args() {
   ! sj
@@ -123,3 +90,28 @@ it_complains_invalid_arch() {
   test "$OUT" = "Architecture amd99 is not valid.  (amd64|i386)"
   teardown $PRESEED
 }
+
+it_complains_invalid_release_codename() {
+  PRESEED=`randomf`
+  ! OUT=`sj -p $PRESEED -r batty`
+  expr "$OUT" : 'Release batty invalid'
+  teardown $PRESEED
+}
+
+it_allows_valid_ubuntu_release_other_than_natty() {
+  PRESEED=`randomf`
+  sj -p $PRESEED -r precise
+  teardown $PRESEED
+}
+
+it_complains_github_url_bad() {
+  ! sj -g blah@somebadgit.com
+  ! sj -g blah@github.com
+  ! sj -g blah@github.com/user/proj.git
+  ! sj -g blah@github.com:user/proj.git
+}
+
+it_allows_valid_github_repo() {
+  sj -g $GITREPO
+}
+
