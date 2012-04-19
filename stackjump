@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROJURL="http://github.com/jhtran/stackjump_skeleton"
+SKELURL="http://github.com/jhtran/stackjump_skeleton"
 DISTURL=" http://us.archive.ubuntu.com/ubuntu/dists"
 USAGE="$0 options
   -p preseed (or use [-d|-g] but -p will take precedence)
@@ -11,7 +11,7 @@ USAGE="$0 options
   -o <file> Write output to <file> instead of custom.iso
   -k keep tmp dir
 
-  See $PROJURL"
+  See $SKELURL"
 
 if [ ! $1 ]; then
   echo "$USAGE" && exit 1
