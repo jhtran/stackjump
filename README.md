@@ -34,16 +34,17 @@ Simplest run, just give it your preseed file
 	Downloading linux files..
 	custom.iso successfully created
 
-Run if you want to keep the temp directory around
+If you want to keep the temp directory around
 
 	$ stackjump -p /tmp/mypreseed.cfg -k
 	Downloading linux files..
 	Temp dir: /tmp/0418121303
 	custom.iso successfully created
 
-Use this if you want files to be injected into the OS at runtime
-NOTE: if you decide to include a preseed, it must be named 'preseed.cfg'
-and must be located in the root of the dir you'll be using
+If you want files to be injected into the OS at runtime
+*NOTE* if you decide to include a preseed instead of passing it as a 
+seperate argument, it must be named 'preseed.cfg' and must be located 
+in the root of the dir you'll be using
 
 	$ mkdir -p /tmp/root_skel/home/ubuntu/.ssh /tmp/root_skel/etc
 	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
@@ -51,7 +52,8 @@ and must be located in the root of the dir you'll be using
 	$ cp /etc/some.config /tmp/root_skel/etc
 	$ stackjump -d /tmp/root_skel
 
-Same as above but in case you decide to pass preseed on the fly
+Using -p preseed arg with a -d or a -g will use the preseed from -p 
+regardless if a preseed.cfg exists in those dirs
 
 	$ stackjump -d /tmp/root_skel -p mypreseed.cfg
 
@@ -63,7 +65,7 @@ Specify an architecture (i386 or amd64) if diff than your workstation
 
 	$ stackjump -p mypreseed.cfg -a amd64
 
-Specify a distribution codename diff than the default (natty)
+Specify an Ubuntu distro codename diff than the default (natty)
 
 	$ stackjump -p mypreseed.cfg -r oneiric
 	$ stackjump -p mypreseed.cfg -r precise
