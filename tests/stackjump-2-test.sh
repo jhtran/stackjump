@@ -11,7 +11,7 @@ check_stackjump_files() {
   RECIPE="$CHFBKD/recipes/default.rb"
   CHEFSEED="$CHFBKD/files/default/chef-server.seed"
   expr "`head -1 $SOLOD/solo.rb`" : 'file_cache_path "/root/chef-solo"'
-  test "`head -2 $SOLOD/solo.json|tail -1`" = '  "run_list": [ "recipe[chef-server::default]" ]'
+  expr "`head -2 $SOLOD/solo.json|tail -1`" : '.*recipe\[chef-server::default\]'
   test "`head -1 $RECIPE`" = "package 'chef-server' do"
   test "`head -3 $RECIPE|tail -1`" = '  response_file "chef-server.seed"'
   expr "`head -1 $CHEFSEED`" : 'chef-server-webui'
@@ -19,7 +19,7 @@ check_stackjump_files() {
   test "`head -2 $ROOT_HOME/first_run.sh|tail -1`" = 'apt-get update'
   if [ $2 ] && [ $2 = 'githaz' ]; then
     test "`tail -1 $SOLOD/solo.rb`" = '# stackjump default solo.rb'
-    test `wc -l $SOLOD/solo.json|awk '{print $1}'` = 4
+    expr "`tail -3 $SOLOD/solo.json|head -1`" : '.*stackjump default solo.json'
     expr "`tail -1 $CHEFSEED`" : '# stackjump default chef-server debconf seed file'
     expr "`tail -1 $ROOT_HOME/late_command.sh`" : "# stackjump default late_command.sh"
     expr "`tail -1 $ROOT_HOME/first_run.sh`" : "# stackjump default first_run.sh"
