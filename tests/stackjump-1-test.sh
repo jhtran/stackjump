@@ -85,3 +85,41 @@ it_uses_preseed_arg_over_dir() {
   test `cat $TMPDIR/initrd/preseed.cfg` = 'preseed_file'
   teardown $TMPDIR
 }
+
+it_defaults_custom_iso() {
+  PRESEED=`randomf`
+  sj -p $PRESEED
+  test -f custom.iso
+  teardown $PRESEED
+}
+
+it_outputs_mynamed_iso() {
+  PRESEED=`randomf`
+  sj -p $PRESEED -o mynamed.iso
+  test -f mynamed.iso
+  test ! -f custom.iso
+  teardown $PRESEED
+}
+
+it_arch_amd64() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -a amd64 -k|grep Temp|awk '{print $3}'`
+  TESTUB=`cat $TMPDIR/testub|head -1`
+  expr "$TESTUB" : '.*\/ubuntu-installer\/amd64'
+  teardown $PRESEED $TMPDIR
+}
+
+it_arch_i386() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -a i386 -k|grep Temp|awk '{print $3}'`
+  TESTUB=`cat $TMPDIR/testub|head -1`
+  expr "$TESTUB" : '.*\/ubuntu-installer\/i386'
+  teardown $PRESEED $TMPDIR
+}
+
+it_complains_invalid_arch() {
+  PRESEED=`randomf`
+  ! OUT=`sj -p $PRESEED -a amd99`
+  test "$OUT" = "Architecture amd99 is not valid.  (amd64|i386)"
+  teardown $PRESEED
+}

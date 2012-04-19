@@ -127,11 +127,15 @@ fi
 
 ## MAKING THE ISO ##
 echo "Downloading linux files.."
+FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
+# let me know if you find a better url for isolinux.bin
+BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
 if [ $TEST ]; then
   touch $ISODIR/linux
   touch $ISODIR/isolinux.bin
+  TESTUB=$TMPDIR/testub
+  echo $FURL >> $TESTUB
 else
-  FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
   curl $FURL/linux -o $ISODIR/linux
   if [ ! -f $ISODIR/linux ]; then
     echo "Unable to download linux" && exit 1
@@ -140,8 +144,6 @@ else
   if [ ! -f $INITRD/init ]; then
     echo "Unable to download initrd.gz" && exit 1
   fi
-  # let me know if you find a better url for isolinux.bin
-  BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
   curl $BURL -o $ISODIR/isolinux.bin
 fi
 
