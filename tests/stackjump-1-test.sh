@@ -70,11 +70,12 @@ it_defaults_custom_iso() {
 
 it_outputs_mynamed_iso() {
   PRESEED=`randomf`
-  sj -p $PRESEED -o mynamed.iso
+  OUT=`sj -p $PRESEED -o mynamed.iso|tail -1`
   test -f mynamed.iso
+  rm -f mynamed.iso
   test ! -f custom.iso
   teardown $PRESEED
-  rm -f mynamed.iso
+  test "$OUT" = 'mynamed.iso successfully created'
 }
 
 it_arch_amd64() {

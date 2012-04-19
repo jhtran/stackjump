@@ -85,3 +85,10 @@ it_uses_stackjump_files_when_dir_already_haz() {
   test "`cat $ROOT_HOME/first_run.sh`" = 'dir_first_run.sh'
   teardown $TMPDIR
 }
+
+it_returns_succesful() {
+  PRESEED=`randomf`
+  OUT=`sj -p $PRESEED|tail -1`
+  teardown $PRESEED
+  test "$OUT" = 'custom.iso successfully created'
+}
