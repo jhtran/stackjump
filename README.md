@@ -41,6 +41,11 @@ If you want to keep the temp directory around
 	Temp dir: /tmp/0418121303
 	custom.iso successfully created
 
+Use the -d arg and no need to pass -p, but just make sure the dir has
+a preseed in its root directory.
+
+	$ stackjump -d /tmp/root_skeleton
+
 If you want files to be injected into the OS at runtime
 
 NOTE if you decide to include a preseed instead of passing it as a 
