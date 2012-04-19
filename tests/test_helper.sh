@@ -2,7 +2,6 @@ PATH="$PATH:.."
 GITURL="git@github.com:jhtran"
 GITREPO="git@github.com:jhtran/stackjump_skeleton.git"
 BADREPO="git@github.com:jhtran/BAD_skeleton.git"
-SOLOPATH="initrd/root_skel/root/chef-solo"
 alias sj="stackjump -t "
 
 randomn() {
