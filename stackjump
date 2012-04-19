@@ -16,8 +16,170 @@ USAGE="$0 options
 
   See $SKELURL"
 
+## EXAMPLE PRESEED TEMPLATE
+
+DEF_INT="d-i netcfg/choose_interface select @@ETHSTUB@@"
+DEF_HOSTN="d-i netcfg/get_hostname string @@HOSTNSTUB@@"
+DEF_DOMN="d-i netcfg/get_domain string @@DOMNSTUB@@"
+DEF_ROOTPW="d-i passwd/root-password-crypted password @@PWSTUB@@"
+DEF_STATIC=`cat<<EOF
+d-i netcfg/disable_dhcp boolean true
+d-i netcfg/confirm_static boolean true
+d-i netcfg/dhcp_timeout string 1
+d-i netcfg/dhcp_failed note
+d-i netcfg/dhcp_options select Configure network manually
+d-i netcfg/get_nameservers string @@DNSSTUB@@
+d-i netcfg/get_ipaddress string @@IPSTUB@@
+d-i netcfg/get_netmask string @@MASKSTUB@@
+d-i netcfg/get_gateway string @@GWSTUB@@
+d-i netcfg/confirm_static boolean true
+EOF`
+
+TEMPLATE=`cat<<EOF
+d-i debian-installer/locale string en_US
+d-i console-setup/ask_detect boolean false
+d-i console-setup/layoutcode string us
+d-i time/zone string UTC
+d-i clock-setup/ntp boolean true
+d-i clock-setup/ntp-server string pool.ntp.org
+d-i clock-setup/utc boolean true
+d-i keyboard-configuration/layoutcode string us
+d-i mirror/country string manual
+d-i mirror/http/hostname string us.archive.ubuntu.com
+d-i mirror/http/directory string /ubuntu
+d-i mirror/http/proxy string
+d-i partman-auto/method string regular
+d-i partman-auto/purge_lvm_from_device boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman-auto/disk string /dev/sda
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman-md/confirm boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i apt-setup/local0/repository string deb http://apt.opscode.com/ oneiric-0.10 main
+d-i apt-setup/local0/comment string opscode server
+d-i apt-setup/local0/source boolean true
+d-i apt-setup/local0/key string http://apt.opscode.com/packages@opscode.com.gpg.key
+d-i passwd/root-login boolean true
+d-i passwd/make-user boolean false
+d-i pkgsel/include string openssh-server curl git ruby1.9.1 vim vlan ifenslave rubygems1.9.1 chef
+d-i pkgsel/update-policy select none
+tasksel tasksel/first multiselect standard, openssh-server
+openssh-server ssh/new_config  boolean true
+openssh-server ssh/use_old_init_script boolean true
+openssh-server ssh/protocol2_only boolean true
+openssh-server ssh/run_sshd boolean true
+chef	chef/chef_server_url	string	http://127.0.0.1:4000
+d-i preseed/late_command string cp -ar /root_skel/* /target; in-target chmod 755 /root/late_command.sh; in-target sh /root/late_command.sh; 
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+d-i finish-install/reboot_in_progress note
+EOF`
+
+
+interr() {
+  echo "Invalid selection" && exit 1
+}
+
+netsummary() {
+  echo ""
+  echo "** SUMMARY **"
+  echo ""
+  echo "Ethernet device: $ETHCHOICE"
+  echo "IP Address: $IP"
+  echo "Subnet mask: $MASK"
+  echo "Gateway: $GW"
+  echo "DNS Server: $DNS"
+  echo "Hostname: $HOSTNCHOICE"
+  echo "Domain: $DOMNCHOICE"
+  echo "Is this correct?  (Y|N)"
+  read CORR
+  case $CORR in
+    Y|y) ;;
+    N|n|*) echo "Aborting!" && exit 1
+  esac
+}
+
+pwinteract() {
+  echo "root password (default 'mypassword'):"
+  read PWCHOICE
+  if [ ! $PWCHOICE ]; then
+    PWCHOICE='mypassword'
+  else
+    echo "re-enter:"
+    read PWCHOICE2
+    if [ ! $PWCHOICE2 ] || [ $PWCHOICE != $PWCHOICE2 ]; then
+      echo "Password did not match" && interr
+    fi
+  fi
+  PWHASH=`printf "$PWCHOICE" | mkpasswd -s -m md5`
+  ROOTPW=`echo $DEF_ROOTPW|sed "s,@@PWSTUB@@,$PWHASH,"`
+}
+
+netinteract() {
+  echo "Ethernet Interface (default auto):"
+  read ETHCHOICE
+  if [ ! $ETHCHOICE ]; then
+    ETHCHOICE='auto'
+  fi
+  ETH=`echo $DEF_INT|sed 's,@@ETHSTUB@@,$ETHCHOICE,'`
+  echo "(D)HCP or (s)tatic network? (default DHCP)":
+  read NET
+  case $NET in
+    s|S) 
+      echo "IP address:"
+      read IP
+      if [ ! $IP ]; then
+        interr
+      fi
+      echo "Subnet mask:"
+      read MASK
+      if [ ! $MASK ]; then
+        interr
+      fi
+      echo "Gateway:"
+      read GW
+      if [ ! $GW ]; then
+        interr
+      fi
+      echo "DNS Server (default 8.8.8.8):"
+      read DNS
+      if [ ! $DNS ]; then
+        DNS='8.8.8.8'
+      fi
+      NET=`echo "$DEF_STATIC"|sed "s,@@IPSTUB@@,$IP,"|sed "s,@@MASKSTUB@@,$MASK,"|sed "s,@@GWSTUB@@,$GW,"|sed "s,@@DNSSTUB@@,$DNS,"`
+      echo "Hostname (optional):"
+      read HOSTNCHOICE
+      if [ ! $HOSTNCHOICE ]; then
+        HOSTNCHOICE='unassigned_node'
+      fi
+      HOSTN=`echo $DEF_HOSTN|sed "s,@@HOSTNSTUB@@,$HOSTNCHOICE,"`
+      echo "Domain (optional):"
+      read DOMNCHOICE
+      if [ ! $DOMNCHOICE ]; then
+        DOMNCHOICE='unassigned_domain'
+      fi
+      DOMN=`echo $DEF_DOMN|sed "s,@@DOMNSTUB@@,$DOMNCHOICE,"`
+      netsummary
+      ;;
+    d|D|*) NET="";;
+  esac
+}
+
 if [ ! $1 ]; then
-  echo "$USAGE" && exit 1
+  echo "Creating basic preseed.."
+  netinteract
+  pwinteract
+  echo "$NET" > preseed.cfg
+  echo "$ROOTPW" >> preseed.cfg
+  echo "$TEMPLATE" >> preseed.cfg
+  echo "preseed created `pwd`/preseed.cfg"
+  exit
 else
   while [ $1 ];do
     case $1 in
