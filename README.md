@@ -74,8 +74,8 @@ Specify an architecture (i386 or amd64) if diff than your workstation
 Specify an Ubuntu distro codename diff than the default (natty)
 
 	$ stackjump -p mypreseed.cfg -r oneiric
-	$ stackjump -p mypreseed.cfg -r precise
-	$ stackjump -p mypreseed.cfg -r maverick
+	$ stackjump -p mypreseed.cfg -r precise -a amd64
+	$ stackjump -p mypreseed.cfg -r maverick -a i386
 
 ## Testing
 
