@@ -1,9 +1,12 @@
 #!/bin/sh
 
 SKELURL="http://github.com/jhtran/stackjump_skeleton"
+PRESURL='https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg'
 DISTURL="http://us.archive.ubuntu.com/ubuntu/dists"
 USAGE="$0 options
   -p preseed (or use [-d|-g] but -p will take precedence)
+     You can grab the example preseed from
+     $PRESURL 
   -d directory (preseed.cfg must exist in dir root)
   -g github repo (must be github hosted)
   -a architecture [i386|amd64]

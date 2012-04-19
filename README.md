@@ -17,6 +17,8 @@ Just download the stackjump script and execute it
 	$ stackjump 
 	stackjump options
 	  -p preseed (or use [-d|-g] but -p will take precedence)
+           You can grab the example preseed from
+           [example preseed.cfg](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg)
 	  -d directory (preseed.cfg must exist in dir root)
 	  -g github repo (must be github hosted)
 	  -a architecture [i386|amd64]
