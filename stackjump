@@ -42,6 +42,9 @@ TMPDIR="/tmp/$DATETIME"
 ISODIR="$TMPDIR/ISO"
 INITRD="$TMPDIR/initrd"
 mkdir -p $ISODIR $INITRD
+if [ $? != 0 ]; then
+  echo "Unable to create tmpdir $TMPDIR subdir(s)" && exit
+fi
 
 ## SANITY CHECKS ##
 
