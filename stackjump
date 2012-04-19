@@ -31,6 +31,7 @@ else
       -o) shift
           ISO=$1;;
       -k) KEEP=1;;
+      -t) TEST=1;;
     esac
     shift
   done
@@ -123,18 +124,23 @@ fi
 
 ## MAKING THE ISO ##
 echo "Downloading linux files.."
-FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
-curl $FURL/linux -o $ISODIR/linux
-if [ ! -f $ISODIR/linux ]; then
-  echo "Unable to download linux" && exit 1
+if [ $TEST ]; then
+  touch $ISODIR/linux
+  touch $ISODIR/isolinux.bin
+else
+  FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
+  curl $FURL/linux -o $ISODIR/linux
+  if [ ! -f $ISODIR/linux ]; then
+    echo "Unable to download linux" && exit 1
+  fi
+  (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
+  if [ ! -f $INITRD/init ]; then
+    echo "Unable to download initrd.gz" && exit 1
+  fi
+  # let me know if you find a better url for isolinux.bin
+  BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
+  curl $BURL -o $ISODIR/isolinux.bin
 fi
-(cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
-if [ ! -f $INITRD/init ]; then
-  echo "Unable to download initrd.gz" && exit 1
-fi
-# let me know if you find a better url for isolinux.bin
-BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
-curl $BURL -o $ISODIR/isolinux.bin
 
 cat>"$ISODIR/isolinux.cfg"<<EOF
 prompt 0
