@@ -42,7 +42,7 @@ If you want to keep the temp directory around
 	custom.iso successfully created
 
 Use the -d arg and no need to pass -p, but just make sure the dir has
-a preseed in its root directory.
+a preseed.cfg (named exactly as such) in its root directory.
 
 	$ stackjump -d /tmp/root_skeleton
 
