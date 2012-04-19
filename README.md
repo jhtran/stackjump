@@ -63,7 +63,7 @@ regardless if a preseed.cfg exists in those dirs
 
 	$ stackjump -d /tmp/root_skel -p mypreseed.cfg
 
-Output a custom iso name instead of default custom.iso
+Output a different iso name other than default custom.iso
 
 	$ stackjump -p mypreseed.cfg -o myubuntu.iso
 
