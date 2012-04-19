@@ -42,7 +42,7 @@ If you want to keep the temp directory around
 	custom.iso successfully created
 
 If you want files to be injected into the OS at runtime
-*NOTE* if you decide to include a preseed instead of passing it as a 
+NOTE if you decide to include a preseed instead of passing it as a 
 seperate argument, it must be named 'preseed.cfg' and must be located 
 in the root of the dir you'll be using
 
@@ -75,6 +75,6 @@ Specify an Ubuntu distro codename diff than the default (natty)
 
 These tests rely on roundup (https://github.com/bmizerany/roundup)
 
-*NOTE* For these tests to pass successfully, it will require internet connectivity.
+NOTE For these tests to pass successfully, it will require internet connectivity.
 
 Just execute 'roundup' in the tests dir.
