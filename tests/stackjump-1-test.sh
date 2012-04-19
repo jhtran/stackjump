@@ -74,6 +74,7 @@ it_outputs_mynamed_iso() {
   test -f mynamed.iso
   test ! -f custom.iso
   teardown $PRESEED
+  rm -f mynamed.iso
 }
 
 it_arch_amd64() {
