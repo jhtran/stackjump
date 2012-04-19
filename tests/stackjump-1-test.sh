@@ -53,6 +53,14 @@ it_uses_preseed_arg_over_dir() {
   teardown $TMPDIR
 }
 
+it_uses_valid_dir_preseed() {
+  RANDOMD=`randomd`
+  TMPDIR=`sj -d $RANDOMD -k|grep Temp|awk '{print $3}'`
+  teardown $RANDOMD
+  test `cat $TMPDIR/initrd/preseed.cfg` = 'preseed_dir'
+  teardown $TMPDIR
+}
+
 it_defaults_custom_iso() {
   PRESEED=`randomf`
   sj -p $PRESEED
@@ -135,3 +143,99 @@ it_uses_preseed_arg_over_github() {
   teardown $TMPDIR
 }
 
+it_uses_valid_github_preseed() {
+  TMPDIR=`sj -g $GITREPO -k|grep Temp|awk '{print $3}'`
+  expr "`head -2 $TMPDIR/initrd/preseed.cfg|tail -1`" : '.*debian-installer\/locale'
+  teardown $TMPDIR
+}
+
+it_creates_isolinux_cfg_when_only_preseed() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -k|grep Temp|awk '{print $3}'`
+  teardown $PRESEED
+  test -f $TMPDIR/ISO/isolinux.cfg
+  expr "`head -1 $TMPDIR/ISO/isolinux.cfg`" : 'prompt 0'
+  expr "`tail -1 $TMPDIR/ISO/isolinux.cfg`" : 'append auto ramdisk'
+  teardown $TMPDIR
+}
+
+it_creates_isolinux_cfg_when_dir() {
+  RANDOMD=`randomd`
+  touch $RANDOMD/preseed.cfg
+  test ! -f "$RANDOMD/ISO/isolinux.cfg"
+  TMPDIR=`sj -d $RANDOMD -k|grep Temp|awk '{print $3}'`
+  teardown $RANDOMD
+  test -f $TMPDIR/ISO/isolinux.cfg
+  expr "`head -1 $TMPDIR/ISO/isolinux.cfg`" : 'prompt 0'
+  expr "`tail -1 $TMPDIR/ISO/isolinux.cfg`" : 'append auto ramdisk'
+  teardown $TMPDIR
+}
+
+it_creates_isolinux_cfg_when_github() {
+  TMPDIR=`sj -g $GITREPO -k|grep Temp|awk '{print $3}'`
+  test -f $TMPDIR/ISO/isolinux.cfg
+  expr "`head -1 $TMPDIR/ISO/isolinux.cfg`" : 'prompt 0'
+  expr "`tail -1 $TMPDIR/ISO/isolinux.cfg`" : 'append auto ramdisk'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_rb_when_only_preseed() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -k|grep Temp|awk '{print $3}'`
+  teardown $PRESEED
+  test -f $TMPDIR/$SOLOPATH/solo.rb
+  expr "`head -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'file_cache_path "/root/chef-solo"'
+  expr "`tail -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'cookbook_path "/root/chef-solo/cookbooks"'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_rb_when_dir_no_haz() {
+  RANDOMD=`randomd`
+  touch $RANDOMD/preseed.cfg
+  TMPDIR=`sj -d $RANDOMD -k|grep Temp|awk '{print $3}'`
+  teardown $RANDOMD
+  test -f $TMPDIR/$SOLOPATH/solo.rb
+  expr "`head -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'file_cache_path "/root/chef-solo"'
+  expr "`tail -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'cookbook_path "/root/chef-solo/cookbooks"'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_rb_when_github_no_haz() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -g $BADREPO -k|grep Temp|awk '{print $3}'`
+  test -f $TMPDIR/$SOLOPATH/solo.rb
+  expr "`head -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'file_cache_path "/root/chef-solo"'
+  expr "`tail -1 $TMPDIR/$SOLOPATH/solo.rb`" : 'cookbook_path "/root/chef-solo/cookbooks"'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_json_when_only_preseed() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -k|grep Temp|awk '{print $3}'`
+  teardown $PRESEED
+  test -f $TMPDIR/$SOLOPATH/solo.json
+  test `wc -l $TMPDIR/$SOLOPATH/solo.json|awk '{print $1}'` = 3
+  test "`head -2 $TMPDIR/$SOLOPATH/solo.json|tail -1`" = '  "run_list": [ "recipe[chef-server::default]" ]'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_json_when_dir_no_haz() {
+  RANDOMD=`randomd`
+  touch $RANDOMD/preseed.cfg
+  TMPDIR=`sj -d $RANDOMD -k|grep Temp|awk '{print $3}'`
+  teardown $RANDOMD
+  test -f $TMPDIR/$SOLOPATH/solo.json
+  test `wc -l $TMPDIR/$SOLOPATH/solo.json|awk '{print $1}'` = 3
+  test "`head -2 $TMPDIR/$SOLOPATH/solo.json|tail -1`" = '  "run_list": [ "recipe[chef-server::default]" ]'
+  teardown $TMPDIR
+}
+
+it_creates_chef_solo_json_when_github_no_haz() {
+  PRESEED=`randomf`
+  TMPDIR=`sj -p $PRESEED -g $BADREPO -k|grep Temp|awk '{print $3}'`
+  teardown $PRESEED
+  test -f $TMPDIR/$SOLOPATH/solo.json
+  test `wc -l $TMPDIR/$SOLOPATH/solo.json|awk '{print $1}'` = 3
+  test "`head -2 $TMPDIR/$SOLOPATH/solo.json|tail -1`" = '  "run_list": [ "recipe[chef-server::default]" ]'
+  teardown $TMPDIR
+}
