@@ -50,7 +50,8 @@ If you want files to be injected into the OS at runtime
 
 NOTE if you decide to include a preseed instead of passing it as a 
 seperate argument, it must be named 'preseed.cfg' and must be located 
-in the root of the dir you'll be using
+in the root of the dir you'll be using.
+See [stackjump_skeleton](http://github.com/jhtran/stackjump_skeleton) as an example dir.
 
 	$ mkdir -p /tmp/root_skel/home/ubuntu/.ssh /tmp/root_skel/etc
 	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
