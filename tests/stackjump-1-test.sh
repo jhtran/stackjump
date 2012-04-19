@@ -115,3 +115,23 @@ it_allows_valid_github_repo() {
   sj -g $GITREPO
 }
 
+it_complains_github_repo_no_preseed() {
+  ! OUT=`sj -g $GITURL/BAD_skeleton.git|grep exist`
+  expr "$OUT" : '.*preseed.cfg doesn.t exist'
+}
+
+it_warns_preseed_overrides_github() {
+  RANDOMF=`randomf`
+  OUT=`sj -g $GITREPO -p $RANDOMF|grep Warning`
+  teardown $RANDOMF
+  test "$OUT" = "Warning: $GITREPO contains a preseed.cfg but -p $RANDOMF takes precedence"
+}
+
+it_uses_preseed_arg_over_github() {
+  RANDOMF=`randomf`
+  TMPDIR=`sj -g $GITREPO -p $RANDOMF -k|grep Temp|awk '{print $3}'`
+  teardown $RANDOMF
+  test `cat $TMPDIR/initrd/preseed.cfg` = 'preseed_file'
+  teardown $TMPDIR
+}
+
