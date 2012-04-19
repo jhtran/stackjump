@@ -68,3 +68,11 @@ Specify a distribution codename diff than the default (natty)
 	$ stackjump -p mypreseed.cfg -r oneiric
 	$ stackjump -p mypreseed.cfg -r precise
 	$ stackjump -p mypreseed.cfg -r maverick
+
+## Testing
+
+These tests rely on roundup (https://github.com/bmizerany/roundup)
+
+*NOTE* For these tests to pass successfully, it will require internet connectivity.
+
+Just execute 'roundup' in the tests dir.
