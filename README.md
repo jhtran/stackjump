@@ -48,12 +48,12 @@ a preseed.cfg (named exactly as such) in its root directory.
 
 	$ stackjump -d /tmp/root_skeleton
 
-If you want files to be injected into the OS at runtime
+If you want files to be injected into the OS at runtime, here's example of how to make your dir skeleton from scratch.
 
 NOTE if you decide to include a preseed instead of passing it as a 
 seperate argument, it must be named 'preseed.cfg' and must be located 
 in the root of the dir you'll be using.
-See [stackjump_skeleton](http://github.com/jhtran/stackjump_skeleton) as an example dir.
+See [stackjump_skeleton](http://github.com/jhtran/stackjump_skeleton) as an example skeleton dir.
 
 	$ mkdir -p /tmp/root_skel/home/ubuntu/.ssh /tmp/root_skel/etc
 	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
