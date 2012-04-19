@@ -5,3 +5,5 @@ These tests rely on roundup (https://github.com/bmizerany/roundup)
 # Usage:
 
 Just execute 'roundup' in this test dir.
+
+	$ roundup
