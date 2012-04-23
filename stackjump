@@ -170,7 +170,9 @@ cp $PRESEED "$INITRD/preseed.cfg"
 ROOTD="$INITRD/root_skel/root"
 CHEFS="$ROOTD/chef-solo/cookbooks/chef-server"
 mkdir -p $CHEFS/files/default $CHEFS/recipes
-(cd $CDIR ; cp -arp * $INITRD/root_skel)
+if [ $CDIR ] && [ -d $CDIR ]; then
+  (cd $CDIR ; cp -arp * $INITRD/root_skel)
+fi
 
 if [ ! -f $ROOTD/chef-solo/solo.rb ]; then
   cat>$ROOTD/chef-solo/solo.rb<<EOF
