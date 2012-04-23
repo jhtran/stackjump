@@ -1,7 +1,7 @@
 PATH="$PATH:.."
-GITURL="git@github.com:jhtran"
-GITREPO="git@github.com:jhtran/stackjump_skeleton.git"
-BADREPO="git@github.com:jhtran/BAD_skeleton.git"
+GITURL="https://github.com/jhtran"
+GITREPO="https://github.com/jhtran/stackjump_skeleton.git"
+BADREPO="https://github.com/jhtran/BAD_skeleton.git"
 alias sj="stackjump -t "
 
 randomn() {

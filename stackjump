@@ -109,7 +109,7 @@ if [ "$HCODE" != '200' ]; then
 fi
 
 if [ $GITH ]; then
-  GITNAME=`expr $GITH : '.*github.com:\(.*\).git'`
+  GITNAME=`expr $GITH : '.*github.com/\(.*\).git'`
   if [ ! $GITNAME ]; then
     echo "$GITH invalid github repo url" && exit 1
   fi
