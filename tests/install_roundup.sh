@@ -5,3 +5,4 @@ cd roundup
 ./configure
 make && sudo make install
 cd ..
+rm -rf roundup
