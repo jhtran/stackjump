@@ -54,7 +54,7 @@ fi
 
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN1` ]; then
-    echo "$BIN needs to be installed to run stackjump"
+    echo "$BIN needs to be installed to run stackjump" && exit 1
   fi
 done
 
