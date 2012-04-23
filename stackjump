@@ -52,6 +52,12 @@ fi
 
 ## SANITY CHECKS ##
 
+for BIN in fakeroot cpio mkisofs curl; do 
+  if [ ! `which $BIN1 ]; then
+    echo "$BIN needs to be installed to run stackjump"
+  fi
+done
+
 if [ ! $PFILE ] && [ ! $CDIR ] && [ ! $GITH ]; then
   echo "$USAGE" && exit 1
 fi
