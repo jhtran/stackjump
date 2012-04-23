@@ -1,4 +1,7 @@
 #!/bin/sh
 
 git clone https://github.com/bmizerany/roundup
-(cd roundup && make && sudo make install)
+cd roundup
+./configure
+make && sudo make install
+cd ..
