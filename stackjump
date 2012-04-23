@@ -109,9 +109,9 @@ if [ "$HCODE" != '200' ]; then
 fi
 
 if [ $GITH ]; then
-  GITNAME=`expr $GITH : 'git@github.com:\(.*\).git'`
+  GITNAME=`expr $GITH : '.*github.com:\(.*\).git'`
   if [ ! $GITNAME ]; then
-    echo "$GITH invalid github repo.  (Should be git@github.com:username/repo.git)" && exit 1
+    echo "$GITH invalid github repo url" && exit 1
   fi
   echo "Exporting github repo..."
   OUTPUT=`(cd $TMPDIR ; curl -kLs https://github.com/$GITNAME/tarball/master|tar -zxv)`
