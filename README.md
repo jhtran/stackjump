@@ -8,6 +8,18 @@ Ideal for those who don't want to mount a large DVD install ISO over IPMI.
 
 Useful for standing up the first admin server in a network deployment such as for Openstack or other cloud framework.
 
+## Prequisites
+
+OSX
+
+* cdrtools (available via Macports)
+* fakeroot
+
+Linux
+
+* mkisofs
+* fakeroot
+
 ## Installation
 
 Just download the stackjump script and execute it

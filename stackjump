@@ -52,11 +52,14 @@ fi
 
 ## SANITY CHECKS ##
 
-for BIN in fakeroot cpio mkisofs curl; do 
+for BIN in cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
     echo "$BIN needs to be installed to run stackjump" && exit 1
   fi
 done
+if [ ! `which fakeroot` ]; then
+  echo "Warning: fakeroot not installed."
+fi
 
 if [ ! $PFILE ] && [ ! $CDIR ] && [ ! $GITH ]; then
   echo "$USAGE" && exit 1
@@ -76,14 +79,13 @@ fi
 if [ $CDIR ]; then
   if [ ! -d $CDIR ]; then
     echo "Directory $CDIR invalid" && exit 1
+  fi
+  if [ $PFILE ]; then 
+    echo "Warning: $CDIR $SEED_WARN"
   else
-    if [ $PFILE ]; then 
-      echo "Warning: $CDIR $SEED_WARN"
-    else
-      PRESEED="$CDIR/preseed.cfg"
-      if [ ! -f $PRESEED ]; then
-        echo "$CDIR/preseed.cfg doesn't exist" && exit 1
-      fi
+    PRESEED="$CDIR/preseed.cfg"
+    if [ ! -f $PRESEED ]; then
+      echo "$CDIR/preseed.cfg doesn't exist" && exit 1
     fi
   fi
 fi
@@ -121,7 +123,8 @@ if [ $GITH ]; then
   fi
   echo "Exporting github repo..."
   OUTPUT=`(cd $TMPDIR ; curl -kLs https://github.com/$GITNAME/tarball/master|tar -zxv)`
-  GITDIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+  GITDPRFX=`echo $GITNAME|sed 's,\/,-,'`
+  GITDIR=`ls -1d $TMPDIR/${GITDPRFX}*`
   if [ ! $GITDIR ]; then
     echo "Unable to download repo tarball" && exit 1
   fi
@@ -151,7 +154,7 @@ else
   if [ ! -f $ISODIR/linux ]; then
     echo "Unable to download linux" && exit 1
   fi
-  (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
+  (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|cpio -id )
   if [ ! -f $INITRD/init ]; then
     echo "Unable to download initrd.gz" && exit 1
   fi
@@ -177,7 +180,7 @@ ROOTD="$INITRD/root_skel/root"
 CHEFS="$ROOTD/chef-solo/cookbooks/chef-server"
 mkdir -p $CHEFS/files/default $CHEFS/recipes
 if [ $CDIR ] && [ -d $CDIR ]; then
-  (cd $CDIR ; cp -arp * $INITRD/root_skel)
+  (cd $CDIR ; cp -rp * $INITRD/root_skel)
 fi
 
 if [ ! -f $ROOTD/chef-solo/solo.rb ]; then
@@ -195,7 +198,7 @@ if [ ! -f $ROOTD/chef-solo/solo.json ]; then
 EOF
 fi
 
-RANDOMPW=`cat /dev/urandom| tr -dc 'a-zA-Z0-9' | fold -w 10| head -n 1`
+RANDOMPW=`openssl rand -base64 32`
 CHEFSEED="$CHEFS/files/default/chef-server.seed"
 if [ ! -f $CHEFSEED ]; then
   echo "chef-server-webui chef-server-webui/admin_password password $RANDOMPW" >> $CHEFSEED
@@ -242,7 +245,7 @@ fi
 (cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/initrd.gz)
 
 # iso it up
-mkisofs -q -r -V "Custom Install" -cache-inodes -J -l -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
+mkisofs -quiet -r -V "Custom Install" -cache-inodes -J -l -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
 if [ ! -f $ISO ]; then
   echo "Create ISO failed." && exit 1
 else
