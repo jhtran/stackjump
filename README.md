@@ -11,6 +11,7 @@ Useful for standing up the first admin server in a network deployment such as fo
 ## Installation
 
 Just download the stackjump script and execute it
+
 Note that it currently only works on Linux.
 
 ## Usage
