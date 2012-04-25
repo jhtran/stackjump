@@ -158,6 +158,8 @@ else
   curl $BURL -o $ISODIR/isolinux.bin
 fi
 
+echo "Creating configs & scripts.."
+
 cat>"$ISODIR/isolinux.cfg"<<EOF
 prompt 0
 timeout 2
@@ -269,6 +271,7 @@ sed -i 's,exit 0,sh /root/first_run.sh,' /etc/rc.local;
 EOF
 fi
 
+echo "Making the ISO..."
 # make the new initrd.gz
 (cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/initrd.gz)
 
