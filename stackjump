@@ -223,6 +223,7 @@ CFDIR="/root/chef-solo"
 update-grub
 chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
 sed -i 's,sh /root/first_run.sh,su root -c "ruby /root/knife_first_run.rb",' /etc/rc.local
+sed -i '/^\*.*$/d' /etc/issue
 reboot
 EOF
 fi
@@ -252,6 +253,11 @@ instance.config[:validation_client_name]='chef-validator'
 instance.config[:validation_key]="#{confd}/validation.pem"
 instance.config[:repository]="#{repod}"
 instance.run_with_pretty_exceptions
+RCF='/etc/rc.local'
+str='su root -c "ruby /root/knife_first_run.rb"'
+rcfcontent=File.read RCF
+rcfcontent.gsub!(/#{str}/, '')
+File.open(RCF, 'w') {|f| f.write rcfcontent}
 EOF
 fi
 
@@ -264,6 +270,9 @@ mv /root/authorized_keys /root/.ssh
 chmod 400 /root/.ssh/authorized_keys
 sed -i 's,quiet splash,quiet,' /etc/default/grub
 echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
+echo '**************************************************' >> /etc/issue
+echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
+echo '**************************************************' >> /etc/issue
 sed -i 's,exit 0,sh /root/first_run.sh,' /etc/rc.local;
 EOF
 fi
