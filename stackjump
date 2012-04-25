@@ -220,8 +220,39 @@ apt-get update
 CFDIR="/root/chef-solo"
 update-grub
 chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
+ruby /root/knife_first_run.rb
 sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
 reboot
+EOF
+fi
+
+KFRUN="$ROOTD/knife_first_run.rb"
+if [ ! -f $KFRUN ]; then
+  cat>$KFRUN<<EOF
+#!/usr/bin/env ruby
+require 'chef/knife'
+require 'ftools'
+confd='/etc/chef'
+rootchf='/root/.chef'
+rootrpo='/root/chef-repo'
+Dir.mkdir(rootchf) unless File.directory?(rootchf)
+Dir.mkdir('/root/chef-repo') unless File.directory?(rootrpo)
+File.copy "#{confd}/webui.pem", rootchf
+File.copy "#{confd}/validation.pem", rootchf
+subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
+commands_loaded = subcommand_loader.load_commands
+knifeconf = Chef::Knife::Configure
+knifeconf.load_deps
+instance = knifeconf.new(["configure", "-i"])
+instance.config[:config_file]="#{rootchf}/knife.rb"
+instance.config[:chef_server_url]='http://localhost:4000'
+instance.config[:node_name]='node1.mydomain.com_root'
+instance.config[:admin_client_name]='chef-webui'
+instance.config[:admin_client_key]="#{rootchf}/webui.pem"
+instance.config[:validation_client_name]='chef-validator'
+instance.config[:validation_key]="#{rootchf}/validation.pem"
+instance.config[:repository]='/root/chef-repo'
+instance.run_with_pretty_exceptions
 EOF
 fi
 
