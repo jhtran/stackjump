@@ -19,8 +19,8 @@ Note that it currently only works on Linux.
 	$ stackjump 
 	stackjump options
 	  -p preseed (or use [-d|-g] but -p will take precedence)
-           You can grab the example preseed from
-             https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg
+             Use the following optimized preseed but modify its settings to your environment:
+               https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg
 	  -d directory (preseed.cfg must exist in dir root)
 	  -g github repo (must be github hosted)
 	  -a architecture [i386|amd64]
@@ -32,7 +32,7 @@ Note that it currently only works on Linux.
 
 ## Examples
 
-Simplest run, just give it your preseed file.  If you don't have one, grab [example preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).  If you use that example preseed the default root password is 'none' spelled exactly as such, but it is recommended that you should change it to something more secure.
+Simplest run, just give it a preseed file.  You should use the pre-optimized fully automated preseed here, but modify it to fit your environment: [preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).  The preseed sets default root password to 'none' spelled exactly as such, but it is recommended you change it to something more secure.
 
 	$ stackjump -p mypreseed.cfg 
 	Downloading linux files..
