@@ -32,7 +32,7 @@ Note that it currently only works on Linux.
 
 ## Examples
 
-Simplest run, just give it your preseed file.  If you don't have one, grab [example preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).  If you use that example preseed the default root password is 'none' spelled exactly as such, but it is advised that you should change it to something more secure.
+Simplest run, just give it your preseed file.  If you don't have one, grab [example preseed](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg).  If you use that example preseed the default root password is 'none' spelled exactly as such, but it is recommended that you should change it to something more secure.
 
 	$ stackjump -p mypreseed.cfg 
 	Downloading linux files..
