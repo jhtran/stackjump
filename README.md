@@ -34,7 +34,7 @@ Note that it currently only works on Linux.
 
 Simplest run, just give it the preseed file.  Use the pre-optimized fully automated [preseed here](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg), but modify it to fit your environment.  
 
-The preseed sets default root password to 'none' spelled exactly as such, but it is recommended you change it to something more secure.
+The preseed sets default ubuntu user password to 'none' spelled exactly as such, but it is recommended you change it to something more secure.
 
 	$ stackjump -p mypreseed.cfg 
 	Downloading linux files..
