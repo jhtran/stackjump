@@ -222,39 +222,47 @@ apt-get update
 CFDIR="/root/chef-solo"
 update-grub
 chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
-sed -i 's,sh /root/first_run.sh,su root -c "ruby /root/knife_first_run.rb",' /etc/rc.local
+sed -i 's,sh /root/first_run.sh,su root -c "ruby /home/ubuntu/knife_first_run.rb",' /etc/rc.local
 sed -i '/^\*.*$/d' /etc/issue
 reboot
 EOF
 fi
 
-KFRUN="$ROOTD/knife_first_run.rb"
+USER_HOME="$INITRD/root_skel/home/ubuntu"
+mkdir -p $USER_HOME
+if [ ! -d $USER_HOME ]; then
+  echo "Unable to create $USER_HOME" && exit 1
+fi
+KFRUN="$USER_HOME/knife_first_run.rb"
 if [ ! -f $KFRUN ]; then
   cat>$KFRUN<<EOF
 #!/usr/bin/ruby
 require 'chef/knife'
 require 'ftools'
+homed='/home/ubuntu'
 confd='/etc/chef'
-rootchf='/root/.chef'
-repod='/root/chef-repo'
-Dir.mkdir(rootchf) unless File.directory?(rootchf)
+homechf="#{homed}/.chef"
+repod="#{homed}/chef-repo"
+Dir.mkdir(homechf) unless File.directory?(homechf)
 Dir.mkdir(repod) unless File.directory?(repod)
+File.cp("#{confd}/webui.pem", homechf)
+File.cp("#{confd}/validation.pem", homechf)
 subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
 commands_loaded = subcommand_loader.load_commands
 knifeconf = Chef::Knife::Configure
 knifeconf.load_deps
 instance = knifeconf.new(["configure", "-i"])
-instance.config[:config_file]="#{rootchf}/knife.rb"
+instance.config[:config_file]="#{homechf}/knife.rb"
 instance.config[:chef_server_url]='http://localhost:4000'
-instance.config[:node_name]='root'
+instance.config[:node_name]='ubuntu'
 instance.config[:admin_client_name]='chef-webui'
-instance.config[:admin_client_key]="#{confd}/webui.pem"
+instance.config[:admin_client_key]="#{homechf}/webui.pem"
 instance.config[:validation_client_name]='chef-validator'
-instance.config[:validation_key]="#{confd}/validation.pem"
+instance.config[:validation_key]="#{homechf}/validation.pem"
 instance.config[:repository]="#{repod}"
 instance.run_with_pretty_exceptions
 RCF='/etc/rc.local'
-str='su root -c "ruby /root/knife_first_run.rb"'
+str='su ubuntu -c "ruby /home/ubuntu/knife_first_run.rb"'
 rcfcontent=File.read RCF
 rcfcontent.gsub!(/#{str}/, '')
 File.open(RCF, 'w') {|f| f.write rcfcontent}
