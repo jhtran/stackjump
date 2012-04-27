@@ -39,6 +39,8 @@ else
            CHEFGITH=$1;;
       -cd) shift
            CHEFCDIR=$1;;
+      -rl) shift
+           CHEFRUNLIST=$1;;
       -k) KEEP=1;;
       -t) TEST=1;;
       *) echo "$USAGE" && exit 1;;
@@ -256,6 +258,13 @@ su ubuntu -c "ruby /home/ubuntu/knife_first_run.rb"
 CHEFREPO="/home/ubuntu/chef-repo"
 chown -R ubuntu \$CHEFREPO
 ( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
+FQDN=\`hostname --fqdn\`
+for ckbk in \`cat /home/ubuntu/chef_admin_run_list\`; do
+  if [ ! -d \$CHEFREPO/cookbooks/\$ckbk ]; then
+    su ubuntu -c "knife cookbook site install \$ckbk"
+  fi
+  su ubuntu -c "knife node run_list add \$FQDN \$ckbk"
+done
 chef-client
 sed -i 's,sh /root/second_run.sh,exit 0,' /etc/rc.local;
 EOF
@@ -308,6 +317,13 @@ sed -i 's,exit 0,sh /root/first_run.sh,' /etc/rc.local;
 EOF
 fi
 
+if [ $CHEFRUNLIST ]; then
+  CHEFRUNLIST=`echo $CHEFRUNLIST| sed 's/,/ /g'`
+else
+  CHEFRUNLIST='apt apt::cacher-ng dnsmasq'
+fi
+echo $CHEFRUNLIST > $USER_HOME/chef_admin_run_list
+
 REPOERR="invalid chef repo (no cookbooks)"
 CHEFREPO="$USER_HOME/chef-repo"
 if [ $CHEFCDIR ]; then
@@ -331,6 +347,13 @@ if [ $CHEFGITH ]; then
     echo "$CHEFGITDIR $REPOERR" && exit 1
   fi
   mv $CHEFGITDIR $CHEFREPO
+  CKBKDIR="$CHEFREPO/cookbooks"
+  for ckbk in $CHEFRUNLIST; do
+    if [ ! -d $CKBKDIR/$ckbk ]; then
+      echo "$ckbk invalid cookbook" && exit 1
+    fi
+  done
+  echo $CHEFRUNLIST > $USER_HOME/chef_admin_run_list
 fi
 
 echo "Making the ISO..."
