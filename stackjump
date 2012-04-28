@@ -304,7 +304,7 @@ if [ ! -f $ROOTD/late_command.sh ]; then
   cat>$ROOTD/late_command.sh<<EOF
 #!/bin/sh
 mkdir /root/.ssh
-chmod 700 /root/.ssh /root/first_run.sh
+chmod 700 /root/.ssh /root/first_run.sh /root/second_run.sh
 mv /root/authorized_keys /root/.ssh
 chmod 400 /root/.ssh/authorized_keys
 sed -i 's,quiet splash,quiet,' /etc/default/grub
