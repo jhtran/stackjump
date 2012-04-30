@@ -330,9 +330,25 @@ if [ $CHEFCDIR ]; then
   if [ ! -d $CHEFCDIR/cookbooks ]; then
     echo "$CHEFCDIR $REPOERR" && exit 1
   fi
+  (cd $CHEFCDIR ; git status > /dev/null 2>&1)
+  if [ $? != 0 ]; then
+    echo "$CHEFCDIR not a valid git repo" && exit 1
+  fi
   cp -arp $CHEFCDIR $CHEFREPO
+else
+  OPSCODE_URL='http://github.com/opscode/chef-repo/tarball/master'
+  OUTPUT=`(cd $TMPDIR ; curl -kLs $OPSCODE_URL|tar -zxv)`
+  OPSCODE_DIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+  mv $OPSCODE_DIR $CHEFREPO
+  if [ ! -d $CHEFREPO ]; then
+    echo "Failed creating empty chef repo" && exit 1
+  fi
+  (cd $CHEFREPO ; git init ; git add * ; git commit -am 'first commit')
 fi
 if [ $CHEFGITH ]; then
+  if [ -d $CHEFREPO ]; then
+    rm -rf $CHEFREPO
+  fi
   CHEFGITN=`expr $CHEFGITH : '.*github.com/\(.*\).git'`
   if [ ! $CHEFGITN ]; then
     echo "$CHEFGITH invalid github repo url" && exit 1
