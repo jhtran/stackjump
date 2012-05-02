@@ -11,8 +11,9 @@ USAGE="$0 options
   -g github repo skeleton directory (must be github hosted)
   -a architecture [i386|amd64]
   -r release_codename (oneiric, natty, maveric, etc)
-  -cg chef repo (a github url)
-  -dg chef repo directory
+  -cg chef repo github
+  -cd chef repo directory
+  -rl chef run list for admin note (comma delimited)
   -o <file> Write output to <file> instead of custom.iso
   -k keep tmp dir
 
@@ -316,36 +317,28 @@ sed -i 's,exit 0,sh /root/first_run.sh,' /etc/rc.local;
 EOF
 fi
 
-if [ $CHEFRUNLIST ]; then
-  CHEFRUNLIST=`echo $CHEFRUNLIST| sed 's/,/ /g'`
-else
-  CHEFRUNLIST='apt apt::cacher-ng'
-fi
-echo $CHEFRUNLIST > $USER_HOME/chef_admin_run_list
+REPOERR="invalid dir structure (see https://github.com/opscode/chef-repo)"
+SUBDIRS="cookbooks certificates config data_bags environments roles"
+valid_chef_repo() {
+  DIR=$1
+  for sdir in $SUBDIRS; do
+    if [ ! -d $DIR/$sdir ]; then
+      echo "$DIR $REPOERR" && exit 1
+    fi
+  done
+}
 
-REPOERR="invalid chef repo (no cookbooks)"
 CHEFREPO="$USER_HOME/chef-repo"
 if [ $CHEFCDIR ]; then
-  if [ ! -d $CHEFCDIR/cookbooks ]; then
-    echo "$CHEFCDIR $REPOERR" && exit 1
-  fi
+  # local dir specified
+  valid_chef_repo $CHEFCDIR
   (cd $CHEFCDIR ; git status > /dev/null 2>&1)
   if [ $? != 0 ]; then
-    echo "$CHEFCDIR not a valid git repo" && exit 1
+    echo "$CHEFCDIR needs to be valid git repo (git init)" && exit 1
   fi
   cp -arp $CHEFCDIR $CHEFREPO
-else
-  OPSCODE_URL='http://github.com/opscode/chef-repo/tarball/master'
-  OUTPUT=`(cd $TMPDIR ; curl -kLs $OPSCODE_URL|tar -zxv)`
-  OPSCODE_DIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
-  mv $OPSCODE_DIR $CHEFREPO
-  if [ ! -d $CHEFREPO ]; then
-    echo "Failed creating empty chef repo" && exit 1
-  fi
-  echo "Creating empty chef repo..."
-  (cd $CHEFREPO ; git init ; git add * ; git commit -am 'first commit') > /dev/null 2>&1
-fi
-if [ $CHEFGITH ]; then
+elif [ $CHEFGITH ]; then
+  # remote github repo
   if [ -d $CHEFREPO ]; then
     rm -rf $CHEFREPO
   fi
@@ -359,17 +352,44 @@ if [ $CHEFGITH ]; then
   if [ ! $CHEFGITDIR ]; then
     echo "Unable to download repo tarball" && exit 1
   fi
-  if [ ! -d $CHEFGITDIR/cookbooks ]; then
-    echo "$CHEFGITDIR $REPOERR" && exit 1
-  fi
+  valid_chef_repo $CHEFGITDIR
   mv $CHEFGITDIR $CHEFREPO
   CKBKDIR="$CHEFREPO/cookbooks"
+else
+  # no repo specified, so create empty chef-repo
+  echo "Creating empty chef repo..."
+  OPSCODE_URL='http://github.com/opscode/chef-repo/tarball/master'
+  OUTPUT=`(cd $TMPDIR ; curl -kLs $OPSCODE_URL|tar -zxv)`
+  OPSCODE_DIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+  mv $OPSCODE_DIR $CHEFREPO
+  if [ ! -d $CHEFREPO ]; then
+    echo "Failed creating empty chef repo" && exit 1
+  fi
+  (cd $CHEFREPO ; git init ; git add * ; git commit -am 'first commit') > /dev/null 2>&1
+fi
+RUNLISTF="$CHEFREPO/admin_run_list"
+
+check_runlist() {
   for ckbk in $CHEFRUNLIST; do
+    if [ $ckbk = 'apt']; then
+      continue
+    fi
     if [ ! -d $CKBKDIR/$ckbk ]; then
       echo "$ckbk invalid cookbook" && exit 1
     fi
   done
-  echo $CHEFRUNLIST > $USER_HOME/chef_admin_run_list
+}
+
+if [ $CHEFRUNLIST ]; then
+  CHEFRUNLIST=`echo $CHEFRUNLIST| sed 's/,/ /g'`
+  check_runlist
+  echo $CHEFRUNLIST > $RUNLISTF
+elif [ -f $RUNLISTF ]; then
+  CHEFRUNLIST=`cat $RUNLISTF|sed 's/,/ /g'`
+  check_runlist
+else
+  CHEFRUNLIST='apt apt::cacher-ng'
+  echo $CHEFRUNLIST > $RUNLISTF
 fi
 
 echo "Making the ISO..."

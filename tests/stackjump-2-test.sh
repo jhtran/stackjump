@@ -88,3 +88,48 @@ it_returns_succesful() {
   teardown $PRESEED
   test "$OUT" = 'custom.iso successfully created'
 }
+
+it_accepts_chef_repo_dir() {
+  RANDOMF=`randomf`
+  RANDOMCD=`randomcr`
+  sj -p $RANDOMF -cd $RANDOMCD
+  teardown $RANDOMF $RANDOMCD
+}
+
+it_errors_chef_repo_dir_not_valid() {
+  RANDOMF=`randomf`
+  OUT=`sj -p $RANDOMF -cd blah|tail -1`
+  test "$OUT" = "blah not a valid dir"
+  RANDOMD=`randomd`
+  ! OUT=`sj -p $RANDOMF -cd $RANDOMD|tail -1`
+  expr "$OUT" : "$RANDOMD invalid dir structure"
+  teardown $RANDOMF $RANDOMD
+}
+
+it_accepts_chef_repo_github() {
+  RANDOMF=`randomf`
+  CHEF_REPO='https://github.com/opscode/chef-repo.git'
+  sj -p $RANDOMF -cg $CHEF_REPO
+  teardown $RANDOMF
+}
+
+it_errors_chef_repo_github_not_valid() {
+  RANDOMF=`randomf`
+  CHEF_REPO='git://github.com/jhtran/stackjump_skeleton.git'
+  ! OUT=`sj -p $RANDOMF -cg $CHEF_REPO|tail -1`
+  teardown $RANDOMF
+  expr "$OUT" : ".* invalid dir structure"
+}
+
+it_creates_empty_chef_repo() {
+  RANDOMF=`randomf`
+  TMPDIR=`sj -p $RANDOMF -k|grep Temp|awk '{print $3}'`
+  CHEFREPOD="$TMPDIR/initrd/root_skel/home/ubuntu/chef-repo"
+  test -d $CHEFREPOD
+  for sdir in $REPOSUBDIRS; do
+    test -d $CHEFREPOD/$sdir
+  done
+  OUT=`(cd $CHEFREPOD; git status)|tail -1`
+  expr "$OUT" : 'nothing added to commit but untracked files present'
+  teardown $TMPDIR $RANDOMF
+}
