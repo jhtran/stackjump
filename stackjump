@@ -263,7 +263,8 @@ if [ ! -d \$CHEFREPO/cookbooks/apt ]; then
   su ubuntu -c "knife cookbook site install apt"
 fi
 ( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
-RUNLIST="cat \$CHEFREPO/admin_run_list"
+sleep 20
+RUNLIST=\`cat \$CHEFREPO/admin_run_list\`
 for ckbk in \$RUNLIST; do
   su ubuntu -c "knife node run_list add \$FQDN \$ckbk"
 done
