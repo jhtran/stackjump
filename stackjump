@@ -238,38 +238,44 @@ if [ ! -f $FRUN ]; then
 apt-get update
 CFDIR="/root/chef-solo"
 update-grub
+echo "installing chef-server"
 chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
-sed -i 's,sh /root/first_run.sh.*,sh /root/second_run.sh > /root/second_run.log 2>&1,' /etc/rc.local
-sed -i '/^\*.*$/d' /etc/issue
-reboot
-EOF
-fi
-
-SECRUN="$ROOTD/second_run.sh"
-if [ ! -f $SECRUN ]; then
-  cat>$SECRUN<<EOF
-#!/bin/sh
+echo "done installing chef-server"
 ETC='/etc/chef'
 HOMEC='/home/ubuntu/.chef'
 mkdir \$HOMEC
 cp \$ETC/webui.pem \$HOMEC
 cp \$ETC/validation.pem \$HOMEC
 chown -R ubuntu \$HOMEC
+sleep 20
+echo "running knife configure -i for ubuntu user"
 su ubuntu -c "ruby /home/ubuntu/knife_first_run.rb"
 CHEFREPO="/home/ubuntu/chef-repo"
 chown -R ubuntu \$CHEFREPO
 FQDN=\`hostname --fqdn\`
 if [ ! -d \$CHEFREPO/cookbooks/apt ]; then
+  echo "install apt cookbook from community opscode"
   su ubuntu -c "knife cookbook site install apt"
 fi
+echo "uploading chef repo cookbooks..."
 ( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
-sleep 20
+echo "running chef client to register"
+chef-client
+echo "listing /etc/chef"
+ls -ald /etc/chef/*
+echo "listing knife clients"
+su ubuntu -c "knife node list"
+echo "adding run list to admin node..."
 RUNLIST=\`cat \$CHEFREPO/admin_run_list\`
 for ckbk in \$RUNLIST; do
+  echo "knife node run_list add \$FQDN \$ckbk"
   su ubuntu -c "knife node run_list add \$FQDN \$ckbk"
 done
+echo "running chef client to invoke run list"
 chef-client
-sed -i 's,sh /root/second_run.sh.*,exit 0,' /etc/rc.local;
+sed -i 's,sh /root/first_run.sh.*,exit 0,' /etc/rc.local;
+sed -i '/^\*.*$/d' /etc/issue
+reboot
 EOF
 fi
 
@@ -308,7 +314,7 @@ if [ ! -f $ROOTD/late_command.sh ]; then
   cat>$ROOTD/late_command.sh<<EOF
 #!/bin/sh
 mkdir /root/.ssh
-chmod 700 /root/.ssh /root/first_run.sh /root/second_run.sh
+chmod 700 /root/.ssh /root/first_run.sh
 mv /root/authorized_keys /root/.ssh
 chmod 400 /root/.ssh/authorized_keys
 sed -i 's,quiet splash,quiet,' /etc/default/grub
