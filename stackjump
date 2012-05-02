@@ -263,8 +263,10 @@ if [ ! -d \$CHEFREPO/cookbooks/apt ]; then
   su ubuntu -c "knife cookbook site install apt"
 fi
 ( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
-su ubuntu -c "knife node run_list add \$FQDN apt"
-su ubuntu -c "knife node run_list add \$FQDN apt::cacher-ng"
+RUNLIST="cat $CHEFREPO/admin_run_list"
+for ckbk in $RUNLIST; do
+  su ubuntu -c "knife node run_list add \$FQDN $ckbk"
+done
 chef-client
 sed -i 's,sh /root/second_run.sh,exit 0,' /etc/rc.local;
 EOF
