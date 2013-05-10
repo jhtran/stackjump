@@ -2,7 +2,6 @@
 
 SKELURL="http://github.com/jhtran/stackjump_skeleton"
 PRESURL='https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg'
-DISTURL="http://us.archive.ubuntu.com/ubuntu/dists"
 USAGE="$0 options
   -p preseed (or use [-d|-g] but -p will take precedence)
      Use the following optimized preseed but modify its settings to your environment: 
@@ -15,6 +14,7 @@ USAGE="$0 options
   -cd chef repo directory
   -rl chef run list for admin note (comma delimited)
   -o <file> Write output to <file> instead of custom.iso
+  -os operating system [ubuntu|centos]
   -k keep tmp dir
 
   See $SKELURL"
@@ -36,6 +36,8 @@ else
           REL=$1;;
       -o) shift
           ISO=$1;;
+      -os) shift
+	  PLATFORM=$1;;
       -cg) shift
            CHEFGITH=$1;;
       -cd) shift
@@ -50,6 +52,15 @@ else
   done
 fi
 
+if [ ! $PLATFORM ]; then
+        PLATFORM='ubuntu'
+fi
+if [ $PLATFORM = "ubuntu" ]; then
+  DISTURL="http://us.archive.ubuntu.com/ubuntu/dists"
+elif [ $PLATFORM = "centos" ]; then
+  DISTURL="http://mirror.centos.org/centos/"
+fi
+
 DATETIME=`date +%m%d%y%H%M`
 TMPDIR="/tmp/$DATETIME"
 ISODIR="$TMPDIR/ISO"
@@ -61,7 +72,7 @@ fi
 
 ## SANITY CHECKS ##
 
-for BIN in fakeroot cpio mkisofs curl; do 
+for BIN in fakeroot lzma cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
     echo "$BIN needs to be installed to run stackjump" && exit 1
   fi
@@ -89,9 +100,13 @@ if [ $CDIR ]; then
     if [ $PFILE ]; then 
       echo "Warning: $CDIR $SEED_WARN"
     else
-      PRESEED="$CDIR/preseed.cfg"
+      if [ $PLATFORM = "ubuntu" ]; then
+      	PRESEED="$CDIR/preseed.cfg"
+      elif [ $PLATFORM = "centos" ];then
+      	PRESEED="$CDIR/ks.cfg"
+      fi
       if [ ! -f $PRESEED ]; then
-        echo "$CDIR/preseed.cfg doesn't exist" && exit 1
+        echo "$CDIR/preseed.cfg/ks.cfg doesn't exist" && exit 1
       fi
     fi
   fi
@@ -112,10 +127,18 @@ if [ $ARCH != 'i386' ] && [ $ARCH != 'amd64' ]; then
   echo "Architecture $ARCH is not valid.  (amd64|i386)" && exit 1
 fi
 
-if [ ! $REL ]; then
-    REL='natty'
+if [ $PLATFORM = "centos" ]; then
+  if [ ! $REL ]; then
+	REL='6'
+  fi 
+  RELURL="$DISTURL/$REL/"
+else
+  if [ ! $REL ]; then
+      REL='natty'
+  fi
+  RELURL="$DISTURL/$REL/"
 fi
-RELURL="$DISTURL/$REL/"
+
 HEAD=`curl -s --head $RELURL|head -1`
 HCODE=`expr "$HEAD" : 'HTTP\/... \(...\) '`
 if [ "$HCODE" != '200' ]; then
@@ -153,43 +176,86 @@ fi
 
 ## MAKING THE ISO ##
 echo "Downloading linux files.."
-FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
-# let me know if you find a better url for isolinux.bin
-BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
-if [ $TEST ]; then
-  touch $ISODIR/linux
-  touch $ISODIR/isolinux.bin
-  TESTUB=$TMPDIR/testub
-  echo $FURL >> $TESTUB
-else
-  curl $FURL/linux -o $ISODIR/linux
-  if [ ! -f $ISODIR/linux ]; then
-    echo "Unable to download linux" && exit 1
+if [ $PLATFORM = 'ubuntu' ]; then
+  FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
+  # let me know if you find a better url for isolinux.bin
+  BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
+  if [ $TEST ]; then
+    touch $ISODIR/linux
+    touch $ISODIR/isolinux.bin
+    TESTUB=$TMPDIR/testub
+    echo $FURL >> $TESTUB
+  else
+    curl $FURL/linux -o $ISODIR/linux
+    if [ ! -f $ISODIR/linux ]; then
+      echo "Unable to download linux" && exit 1
+    fi
+    (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
+    if [ ! -f $INITRD/init ]; then
+      echo "Unable to download initrd.gz" && exit 1
+    fi
+    curl $BURL -o $ISODIR/isolinux.bin
   fi
-  (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
-  if [ ! -f $INITRD/init ]; then
-    echo "Unable to download initrd.gz" && exit 1
+elif [ $PLATFORM = 'centos' ]; then
+ ARCH=`arch`
+ FURL="${RELURL}/os/$ARCH/isolinux/"
+ BURL="${RELURL}/os/$ARCH/isolinux/isolinux.bin"
+ if [ $TEST ];then
+   touch $ISODIR/linux
+   touch $ISODIR/isolinux.bin
+   echo $FURL >> $TESTTUB
+ else
+  curl $FURL/vmlinuz -o $ISODIR/linux
+  if [ ! -f $ISODIR/linux ]; then
+    echo "Unable to download vmlinuz and name linux " && exit 1
+  fi
+   echo $FURL
+  (cd $INITRD && curl $FURL/initrd.img | lzma -S .img -c -d |fakeroot cpio -id )
+  if [ ! -f $INITRD/sbin/init ];then
+    echo "Unable to download initrd.img" && exit 1
   fi
   curl $BURL -o $ISODIR/isolinux.bin
+  fi
 fi
 
 echo "Creating configs & scripts.."
 
-cat>"$ISODIR/isolinux.cfg"<<EOF
-prompt 0
-timeout 2
-menu hshift 13
-menu width 49
-menu margin 8
-default autoinstall
+if [ $PLATFORM = "ubuntu" ]; then
 
-label autoinstall
-MENU LABEL AUTOMATED INSTALL
-kernel linux
-append auto ramdisk_size=14984 initrd=initrd.gz vga=normal DEBCONF_DEBUG=5
+cat>"$ISODIR/isolinux.cfg"<<EOF
+  prompt 0
+  timeout 2
+  menu hshift 13
+  menu width 49
+  menu margin 8
+  default autoinstall
+  
+  label autoinstall
+  MENU LABEL AUTOMATED INSTALL
+  kernel linux
+  append auto ramdisk_size=14984 initrd=initrd.gz vga=normal DEBCONF_DEBUG=5
 EOF
 
-cp $PRESEED "$INITRD/preseed.cfg"
+  cp $PRESEED "$INITRD/preseed.cfg"
+elif [ $PLATFORM = "centos" ]; then
+
+cat>"$ISODIR/isolinux.cfg"<<EOF
+  prompt 0
+  timeout 2
+  menu hshift 13
+  menu width 49
+  menu margin 8
+  default autoinstall
+  
+  label autoinstall
+  MENU LABEL AUTOMATED INSTALL
+  kernel linux
+  append auto ramdisk_size=14984 initrd=initrd.gz vga=normal ks=file:/ks.cfg ksdevice=eth0 apic
+EOF
+  
+  cp $PRESEED "$INITRD/ks.cfg"
+fi
+
 ROOTD="$INITRD/root_skel/root"
 SOLOD="$ROOTD/chef-solo"
 CHEFS="$SOLOD/cookbooks/chef-server"
@@ -224,9 +290,15 @@ fi
 RECIPE="$CHEFS/recipes/default.rb"
 if [ ! -f $RECIPE ]; then
   cat>$RECIPE<<EOF
-package 'chef-server' do
-action :install
-  response_file "chef-server.seed"
+if (platform?("ubuntu"))
+	package 'chef-server' do
+		action :install
+  		response_file "chef-server.seed"
+	end
+elsif (platform?("centos"))
+	package 'rubygem-chef-server' do
+		action :install
+	end
 end
 EOF
 fi
@@ -235,12 +307,19 @@ FRUN="$ROOTD/first_run.sh"
 if [ ! -f $FRUN ]; then
   cat>$FRUN<<EOF
 #!/bin/sh
-apt-get update
+if [ $PLATFORM = "ubuntu" ]; then
+  apt-get update
+  update-grub
+elif [ $PLATFORM = "centos" ];then
+  yum update -y
+fi
 CFDIR="/root/chef-solo"
-update-grub
 echo "installing chef-server"
 chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
 echo "done installing chef-server"
+if [ $PLATFORM = "centos" ]; then
+  setup-chef-server.sh
+fi
 ETC='/etc/chef'
 HOMEC='/home/ubuntu/.chef'
 mkdir \$HOMEC
@@ -253,9 +332,11 @@ su ubuntu -c "ruby /home/ubuntu/knife_first_run.rb"
 CHEFREPO="/home/ubuntu/chef-repo"
 chown -R ubuntu \$CHEFREPO
 FQDN=\`hostname --fqdn\`
-if [ ! -d \$CHEFREPO/cookbooks/apt ]; then
-  echo "install apt cookbook from community opscode"
-  su ubuntu -c "knife cookbook site install apt"
+if [ ! -d \$CHEFREPO/cookbooks/apt ] ; then
+  if [ $PLATFORM = "ubuntu" ]
+    echo "install apt cookbook from community opscode"
+  s  u ubuntu -c "knife cookbook site install apt"
+  fi
 fi
 echo "uploading chef repo cookbooks..."
 ( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
@@ -273,9 +354,15 @@ for ckbk in \$RUNLIST; do
 done
 echo "running chef client to invoke run list"
 chef-client
-sed -i 's,sh /root/first_run.sh.*,exit 0,' /etc/rc.local;
-sed -i '/^\*.*$/d' /etc/issue
-reboot
+sleep 10
+if [ $PLATFORM = "ubuntu" ]; then
+  sed -i 's,sh /root/first_run.sh.*,exit 0,' /etc/rc.local;
+  sed -i '/^\*.*$/d' /etc/issue
+  reboot
+elif [ $PLATFORM = "centos" ]; then
+  sed -i 's/sh \/root\/first_run.sh.*//' /etc/rc.local;
+  sed -i '/^\*.*$/d' /etc/issue
+fi
 EOF
 fi
 
@@ -288,6 +375,7 @@ KFRUN="$USER_HOME/knife_first_run.rb"
 if [ ! -f $KFRUN ]; then
   cat>$KFRUN<<EOF
 #!/usr/bin/ruby
+require 'rubygems'
 require 'chef/knife'
 require 'ftools'
 homed='/home/ubuntu'
@@ -310,20 +398,37 @@ instance.run_with_pretty_exceptions
 EOF
 fi
 
-if [ ! -f $ROOTD/late_command.sh ]; then
+if [ $PLATFORM = "ubuntu" ]; then
+  if [ ! -f $ROOTD/late_command.sh ]; then
   cat>$ROOTD/late_command.sh<<EOF
-#!/bin/sh
-mkdir /root/.ssh
-chmod 700 /root/.ssh /root/first_run.sh
-mv /root/authorized_keys /root/.ssh
-chmod 400 /root/.ssh/authorized_keys
-sed -i 's,quiet splash,quiet,' /etc/default/grub
-echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
-echo '**************************************************' >> /etc/issue
-echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
-echo '**************************************************' >> /etc/issue
-sed -i 's,exit 0,sh /root/first_run.sh > /root/first_run.log 2>&1,' /etc/rc.local;
+  #!/bin/sh
+  mkdir /root/.ssh
+  chmod 700 /root/.ssh /root/first_run.sh
+  mv /root/authorized_keys /root/.ssh
+  chmod 400 /root/.ssh/authorized_keys
+  sed -i 's,quiet splash,quiet,' /etc/default/grub
+  echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
+  echo '**************************************************' >> /etc/issue
+  echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
+  echo '**************************************************' >> /etc/issue
+  sed -i 's,exit 0,sh /root/first_run.sh > /root/first_run.log 2>&1,' /etc/rc.local;
 EOF
+  fi
+elif [ $PLATFORM = "centos" ]; then
+  if [ ! -f $ROOTD/late_command.sh ]; then
+    cat>$ROOTD/late_command.sh<<EOF
+  #!/bin/sh
+  mkdir /root/.ssh
+  chmod 700 /root/.ssh /root/first_run.sh
+  mv /root/authorized_keys /root/.ssh
+  chmod 400 /root/.ssh/authorized_keys
+  echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
+  echo '**************************************************' >> /etc/issue
+  echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
+  echo '**************************************************' >> /etc/issue
+  echo 'sh /root/first_run.sh > /root/first_run.log 2>&1' >> /etc/rc.local;
+EOF
+  fi
 fi
 
 REPOERR="invalid dir structure (see https://github.com/opscode/chef-repo)"
