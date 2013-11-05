@@ -1,0 +1,23 @@
+#!/opt/chef/embedded/bin/ruby
+
+require 'chef/knife'
+
+homed='/root'
+homechf="#{homed}/.chef"
+repod="#{homed}/chef-repo"
+confd="/etc/chef-server"
+subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
+commands_loaded = subcommand_loader.load_commands
+knifeconf = Chef::Knife::Configure
+knifeconf.load_deps
+instance = knifeconf.new(["configure", "-i"])
+instance.config[:config_file]="#{homechf}/knife.rb"
+instance.config[:chef_server_url]='https://localhost:443'
+instance.config[:node_name]='MYJUMPNODE'
+instance.config[:user_password]='MYPASSWORD'
+instance.config[:admin_client_name]='chef-webui'
+instance.config[:admin_client_key]="#{confd}/chef-webui.pem"
+instance.config[:validation_client_name]='chef-validator'
+instance.config[:validation_key]="#{confd}/chef-validator.pem"
+instance.config[:repository]="#{repod}"
+instance.run_with_pretty_exceptions

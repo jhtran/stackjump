@@ -1,116 +1,96 @@
-#!/bin/sh
+#!/bin/bash
 
-SKELURL="http://github.com/jhtran/stackjump_skeleton"
-PRESURL='https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg'
+
+# password hash to set for 'ubuntu' user account on install
+# default set to 'none' spelled out
+MYPASSWD='$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'
+KNIFE_PASSWD='mypassword'
+NODE_NAME='myjumpnode'
+
+# as of 11/05/13 these are the lastest versions
+CHEF_CLIENT_VER="11.8.0-1"
+CHEF_SERVER_VER="11.0.8-1"
+
+WHOAMI=`whoami`
+if [ $WHOAMI != "root" ]; then
+  echo "Must be run as sudo root"
+  exit 1
+fi
+
 USAGE="$0 options
-  -p preseed (or use [-d|-g] but -p will take precedence)
-     Use the following optimized preseed but modify its settings to your environment: 
-       $PRESURL 
-  -d skeleton directory (preseed.cfg must exist in dir root)
-  -g github repo skeleton directory (must be github hosted)
+  -d dry run don't create iso
+  -c chef repo dir
   -a architecture [i386|amd64]
-  -r release_codename (oneiric, natty, maveric, etc)
-  -cg chef repo github
-  -cd chef repo directory
-  -rl chef run list for admin note (comma delimited)
-  -o <file> Write output to <file> instead of custom.iso
-  -os operating system [ubuntu|centos]
-  -k keep tmp dir
+  -r release_codename (oneiric, natty, maverick, etc)
+  -v release_version
+  -rl chef run list for jump node (comma delimited)
+  -o output iso
+  -V verbose
+  -k keep tmp dir"
 
-  See $SKELURL"
+while [ $1 ];do
+  case $1 in
+    -d) shift
+        DRYRUN=1;;
+    -c) shift
+        CHEFREPO=$1;;
+    -a) shift
+        ARCH=$1;;
+    -r) shift
+        REL=$1;;
+    -v) shift
+        VER=$1;;
+    -o) shift
+        ISO=$1;;
+    -rl) shift
+         CHEFRUNLIST=$1;;
+    -k) shift
+        KEEP=1;;
+    -V) shift
+        VERBOSE=1;;
+    *) echo "$USAGE" && exit 1;;
+  esac
+  shift
+done
 
-if [ ! $1 ]; then
-  echo "$USAGE" && exit 1
-else
-  while [ $1 ];do
-    case $1 in
-      -p) shift
-          PFILE=$1;;
-      -d) shift
-          CDIR=$1;;
-      -g) shift
-          GITH=$1;;
-      -a) shift
-          ARCH=$1;;
-      -r) shift
-          REL=$1;;
-      -o) shift
-          ISO=$1;;
-      -os) shift
-	  PLATFORM=$1;;
-      -cg) shift
-           CHEFGITH=$1;;
-      -cd) shift
-           CHEFCDIR=$1;;
-      -rl) shift
-           CHEFRUNLIST=$1;;
-      -k) KEEP=1;;
-      -t) TEST=1;;
-      *) echo "$USAGE" && exit 1;;
-    esac
-    shift
-  done
+echo -e "\n## This tool should only be run on a Linux workstation ##"
+echo "## This code is customized for AT&T environment usage only ##"
+echo -e "## So far only tested on Precise Pangolin 12.04.3 x64 ##\n"
+
+sleep 2
+
+TMPDIR="/tmp/stackjump"
+if [ ! $REL ]; then
+  REL='precise'
 fi
 
-if [ ! $PLATFORM ]; then
-        PLATFORM='ubuntu'
-fi
-if [ $PLATFORM = "ubuntu" ]; then
-  DISTURL="http://us.archive.ubuntu.com/ubuntu/dists"
-elif [ $PLATFORM = "centos" ]; then
-  DISTURL="http://mirror.centos.org/centos/"
-fi
-
-DATETIME=`date +%m%d%y%H%M`
-TMPDIR="/tmp/$DATETIME"
 ISODIR="$TMPDIR/ISO"
 INITRD="$TMPDIR/initrd"
-mkdir -p $ISODIR $INITRD
-if [ $? != 0 ]; then
-  echo "Unable to create tmpdir $TMPDIR subdir(s)" && exit
+DOWNLOADS="$TMPDIR/DOWNLOADS"
+
+if [ ! -d $TMPDIR ]; then
+  mkdir -p $TMPDIR
+fi
+
+if [ ! -d "$DOWNLOADS" ]; then
+  mkdir -p "$DOWNLOADS"
+fi
+
+if [ ! -d $ISODIR ]; then
+  mkdir -p $ISODIR
+fi
+
+if [ ! -d $INITRD ]; then
+  mkdir -p $INITRD
 fi
 
 ## SANITY CHECKS ##
 
-for BIN in fakeroot lzma cpio mkisofs curl; do 
+for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
     echo "$BIN needs to be installed to run stackjump" && exit 1
   fi
 done
-
-if [ ! $PFILE ] && [ ! $CDIR ] && [ ! $GITH ]; then
-  echo "$USAGE" && exit 1
-fi
-if ([ $GITH ] && [ $CDIR ]) ; then
-  echo "Use only one of the -d or -g flags." && exit 1
-fi
-if [ $PFILE ]; then
-  if [ ! -f $PFILE ]; then
-    echo "$PFILE not a valid preseed file" && exit 1
-  else
-    PRESEED=$PFILE
-    SEED_WARN="contains a preseed.cfg but -p $PRESEED takes precedence"
-  fi
-fi
-
-if [ $CDIR ]; then
-  if [ ! -d $CDIR ]; then
-    echo "Directory $CDIR invalid" && exit 1
-  else
-    if [ $PFILE ]; then 
-      echo "Warning: $CDIR $SEED_WARN"
-    else
-      if [ $PLATFORM = "ubuntu" ]; then
-      	PRESEED="$CDIR/preseed.cfg"
-      elif [ $PLATFORM = "centos" ];then
-      	PRESEED="$CDIR/ks.cfg"
-      fi
-      if [ ! -f $PRESEED ]; then
-        echo "$CDIR/preseed.cfg/ks.cfg doesn't exist" && exit 1
-      fi
-    fi
-  fi
-fi
 
 if [ ! $ISO ]; then
   ISO='custom.iso'
@@ -119,110 +99,65 @@ fi
 if [ ! $ARCH ]; then
   ARCH=`arch`
 fi
+
 case $ARCH in
   'i686') ARCH='i386';;
   'x86_64') ARCH='amd64';;
 esac
+
 if [ $ARCH != 'i386' ] && [ $ARCH != 'amd64' ]; then
   echo "Architecture $ARCH is not valid.  (amd64|i386)" && exit 1
 fi
 
-if [ $PLATFORM = "centos" ]; then
-  if [ ! $REL ]; then
-	REL='6'
-  fi 
-  RELURL="$DISTURL/$REL/"
-else
-  if [ ! $REL ]; then
-      REL='natty'
-  fi
-  RELURL="$DISTURL/$REL/"
+if [ ! $VER]; then
+  VER='12.04.3'
 fi
+DISTURL="http://releases.ubuntu.com"
+ISONAME="ubuntu-$VER-server-$ARCH.iso"
+ISOURL="$DISTURL/$REL/$ISONAME"
 
-HEAD=`curl -s --head $RELURL|head -1`
+HEAD=`curl -s --head $ISOURL|head -1`
 HCODE=`expr "$HEAD" : 'HTTP\/... \(...\) '`
 if [ "$HCODE" != '200' ]; then
   echo "Release $REL invalid."
-  echo "Check $DISTURL to make sure a valid release codename" && exit 1
+  echo "Check $ISOURL to make sure a valid release codename" && exit 1
 fi
 
-if [ $GITH ]; then
-  GITNAME=`expr $GITH : '.*github.com/\(.*\).git'`
-  if [ ! $GITNAME ]; then
-    echo "$GITH invalid github repo url" && exit 1
-  fi
-  echo "Exporting github repo..."
-  OUTPUT=`(cd $TMPDIR ; curl -kLs https://github.com/$GITNAME/tarball/master|tar -zxv)`
-  GITDIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
-  if [ ! $GITDIR ]; then
-    echo "Unable to download repo tarball" && exit 1
-  fi
-  CDIR=$GITDIR
-  if [ $PFILE ]; then
-    echo "Warning: $GITH $SEED_WARN"
-  else
-    PRESEED="$GITDIR/preseed.cfg"
-    if [ ! -f $PRESEED ]; then
-        echo "$GITDIR/preseed.cfg doesn't exist" && exit 1
-    fi
-  fi
+### MAKING THE ISO ##
+if [ -f "$DOWNLOADS/$ISONAME" ]; then
+  echo -e "\n$DOWNLOADS/$ISONAME exists - skipping download\n"
+else
+  echo -e "\nDownloading $ISOURL to $DOWNLOADS/$ISONAME\n"
+  curl $ISOURL -o $DOWNLOADS/$ISONAME
 fi
 
-if [ $CHEFCDIR ]; then
-  if [ ! -d $CHEFCDIR ]; then
-    echo "$CHEFCDIR not a valid dir" && exit 1
-  fi
+MOUNTDIR="$TMPDIR/mount"
+if [ ! -d $MOUNTDIR ]; then
+  mkdir -p $MOUNTDIR
+fi
+if [ -d $MOUNTDIR/isolinux ]; then
+  echo -e "\nISO already mounted $MOUNTDIR - skipping mount\n"
+else
+  echo -e "\nMounting to $MOUNTDIR...\n"
+  mount -o loop $DOWNLOADS/$ISONAME $MOUNTDIR
+fi
+echo -e "\nCopying contents of $ISONAME to $ISODIR\n"
+sleep 2
+if [ $VERBOSE ]; then
+  rsync -av $MOUNTDIR/ $ISODIR/
+else
+  rsync -av $MOUNTDIR/ $ISODIR/ > /dev/null 2>&1
 fi
 
-## MAKING THE ISO ##
-echo "Downloading linux files.."
-if [ $PLATFORM = 'ubuntu' ]; then
-  FURL="${RELURL}main/installer-${ARCH}/current/images/netboot/ubuntu-installer/$ARCH"
-  # let me know if you find a better url for isolinux.bin
-  BURL="http://slackware.osuosl.org/slackware-current/isolinux/isolinux.bin"
-  if [ $TEST ]; then
-    touch $ISODIR/linux
-    touch $ISODIR/isolinux.bin
-    TESTUB=$TMPDIR/testub
-    echo $FURL >> $TESTUB
-  else
-    curl $FURL/linux -o $ISODIR/linux
-    if [ ! -f $ISODIR/linux ]; then
-      echo "Unable to download linux" && exit 1
-    fi
-    (cd $INITRD && curl $FURL/initrd.gz| gzip -dc|fakeroot cpio -id )
-    if [ ! -f $INITRD/init ]; then
-      echo "Unable to download initrd.gz" && exit 1
-    fi
-    curl $BURL -o $ISODIR/isolinux.bin
-  fi
-elif [ $PLATFORM = 'centos' ]; then
- ARCH=`arch`
- FURL="${RELURL}/os/$ARCH/isolinux/"
- BURL="${RELURL}/os/$ARCH/isolinux/isolinux.bin"
- if [ $TEST ];then
-   touch $ISODIR/linux
-   touch $ISODIR/isolinux.bin
-   echo $FURL >> $TESTTUB
- else
-  curl $FURL/vmlinuz -o $ISODIR/linux
-  if [ ! -f $ISODIR/linux ]; then
-    echo "Unable to download vmlinuz and name linux " && exit 1
-  fi
-   echo $FURL
-  (cd $INITRD && curl $FURL/initrd.img | lzma -S .img -c -d |fakeroot cpio -id )
-  if [ ! -f $INITRD/sbin/init ];then
-    echo "Unable to download initrd.img" && exit 1
-  fi
-  curl $BURL -o $ISODIR/isolinux.bin
-  fi
+
+if [ $VERBOSE ]; then
+  (cd $INITRD && gunzip -c $MOUNTDIR/install/initrd.gz| fakeroot cpio -id )
+else
+  (cd $INITRD && gunzip -c $MOUNTDIR/install/initrd.gz| fakeroot cpio -id ) > /dev/null 2>&1
 fi
 
-echo "Creating configs & scripts.."
-
-if [ $PLATFORM = "ubuntu" ]; then
-
-cat>"$ISODIR/isolinux.cfg"<<EOF
+echo -e "\nCUSTOMIZING ISOLINUX.cfg\n"
+cat>"$ISODIR/isolinux/isolinux.cfg"<<EOF
   prompt 0
   timeout 2
   menu hshift 13
@@ -232,293 +167,131 @@ cat>"$ISODIR/isolinux.cfg"<<EOF
   
   label autoinstall
   MENU LABEL AUTOMATED INSTALL
-  kernel linux
-  append auto ramdisk_size=14984 initrd=initrd.gz vga=normal DEBCONF_DEBUG=5
+  kernel /install/vmlinuz
+  append auto ramdisk_size=14984 initrd=/install/initrd.gz vga=normal DEBCONF_DEBUG=5
 EOF
 
-  cp $PRESEED "$INITRD/preseed.cfg"
-elif [ $PLATFORM = "centos" ]; then
+echo -e "\nINJECTING PRESEED AND CUSTOM SCRIPTS\n"
 
-cat>"$ISODIR/isolinux.cfg"<<EOF
-  prompt 0
-  timeout 2
-  menu hshift 13
-  menu width 49
-  menu margin 8
-  default autoinstall
-  
-  label autoinstall
-  MENU LABEL AUTOMATED INSTALL
-  kernel linux
-  append auto ramdisk_size=14984 initrd=initrd.gz vga=normal ks=file:/ks.cfg ksdevice=eth0 apic
-EOF
-  
-  cp $PRESEED "$INITRD/ks.cfg"
+cp preseed.cfg $INITRD
+sed -i "s/MYPASSWD/$MYPASSWD/g" $INITRD/preseed.cfg
+
+EXTRAS="$INITRD/extras"
+if [ ! -d $EXTRAS/root/.ssh ]; then
+  mkdir -p $EXTRAS/root/.ssh
+fi
+if [ ! -d $EXTRAS/home/ubuntu/.ssh ]; then
+  mkdir -p $EXTRAS/home/ubuntu/.ssh
+fi
+cp first_run.sh late_command.sh knife_first_run $INITRD/extras/root
+cp authorized_keys $EXTRAS/root/.ssh/authorized_keys
+cp authorized_keys $EXTRAS/home/ubuntu/.ssh
+sed -i "s/MYPASSWORD/$KNIFE_PASSWD/g" $EXTRAS/root/knife_first_run
+sed -i "s/MYJUMPNODE/$NODE_NAME/g" $EXTRAS/root/knife_first_run
+
+# DOWNLOAD LATEST CHEF OMNIBUS PACKAGES
+if [ ! -d $ISODIR/extras ] ; then
+  mkdir $ISODIR/extras
 fi
 
-ROOTD="$INITRD/root_skel/root"
-SOLOD="$ROOTD/chef-solo"
-CHEFS="$SOLOD/cookbooks/chef-server"
-mkdir -p $CHEFS/files/default $CHEFS/recipes
+OMNIBUS_URL="https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu"
+IFS=. read -r maj min _ <<< "$VER"
+OMNI_VER="$maj.$min"
+# Only available in x86_64
+OMNI_ARCH="x86_64"  
+CHEFCLIENT="chef_$CHEF_CLIENT_VER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+CHEFC_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFCLIENT"
+if [ -f $DOWNLOADS/$CHEFCLIENT ]; then
+  echo -e "\n$DOWNLOADS/$CHEFCLIENT exists - skipping chef client download\n"
+else
+  echo -e "\nDownloading CHEF-CLIENT OMNIBUS $DOWNLOADS/$CHEFCLIENT\n"
+  curl $CHEFC_URL -o $DOWNLOADS/$CHEFCLIENT
+fi
+cp $DOWNLOADS/$CHEFCLIENT $ISODIR/extras/$CHEFCLIENT
 
-if [ $CDIR ] && [ -d $CDIR ]; then
-  (cd $CDIR ; cp -arp * $INITRD/root_skel)
+CHEFSERVER="chef-server_$CHEF_SERVER_VER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+CHEFS_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFSERVER"
+if [ -f $DOWNLOADS/$CHEFSERVER ]; then
+  echo -e "\n$DOWNLOADS/$CHEFSERVER exists - skipping chef server download\n"
+else
+  echo -e "\nDownloading CHEF-SERVER OMNIBUS $DOWNLOADS/$CHEFSERVER\n"
+  curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
 fi
+cp $DOWNLOADS/$CHEFSERVER $ISODIR/extras/$CHEFSERVER
 
-if [ ! -f $SOLOD/solo.rb ]; then
-  cat>$SOLOD/solo.rb<<EOF
-file_cache_path "/root/chef-solo"
-cookbook_path "/root/chef-solo/cookbooks"
-EOF
+## IMPORT THE CHEF REPO
+MYCHEFREPO="$ISODIR/extras/chef-repo"
+if [ ! -d $MYCHEFREPO ]; then
+  mkdir -p $MYCHEFREPO/cookbooks $MYCHEFREPO/roles
 fi
-
-if [ ! -f $SOLOD/solo.json ]; then
-  cat>$SOLOD/solo.json<<EOF
-{
-  "run_list": [ "recipe[chef-server::default]" ]
-}
-EOF
-fi
-
-RANDOMPW=`cat /dev/urandom| tr -dc 'a-zA-Z0-9' | fold -w 10| head -n 1`
-CHEFSEED="$CHEFS/files/default/chef-server.seed"
-if [ ! -f $CHEFSEED ]; then
-  echo "chef-server-webui chef-server-webui/admin_password password $RANDOMPW" >> $CHEFSEED
-  echo "chef-solr chef-solr/amqp_password password $RANDOMPW" >> $CHEFSEED
-fi
-
-RECIPE="$CHEFS/recipes/default.rb"
-if [ ! -f $RECIPE ]; then
-  cat>$RECIPE<<EOF
-if (platform?("ubuntu"))
-	package 'chef-server' do
-		action :install
-  		response_file "chef-server.seed"
-	end
-elsif (platform?("centos"))
-	package 'rubygem-chef-server' do
-		action :install
-	end
-end
-EOF
-fi
-
-FRUN="$ROOTD/first_run.sh"
-if [ ! -f $FRUN ]; then
-  cat>$FRUN<<EOF
-#!/bin/sh
-if [ $PLATFORM = "ubuntu" ]; then
-  apt-get update
-  update-grub
-elif [ $PLATFORM = "centos" ];then
-  yum update -y
-fi
-CFDIR="/root/chef-solo"
-echo "installing chef-server"
-chef-solo -c \$CFDIR/solo.rb -j \$CFDIR/solo.json
-echo "done installing chef-server"
-if [ $PLATFORM = "centos" ]; then
-  setup-chef-server.sh
-fi
-ETC='/etc/chef'
-HOMEC='/home/ubuntu/.chef'
-mkdir \$HOMEC
-cp \$ETC/webui.pem \$HOMEC
-cp \$ETC/validation.pem \$HOMEC
-chown -R ubuntu \$HOMEC
-sleep 20
-echo "running knife configure -i for ubuntu user"
-su ubuntu -c "ruby /home/ubuntu/knife_first_run.rb"
-CHEFREPO="/home/ubuntu/chef-repo"
-chown -R ubuntu \$CHEFREPO
-FQDN=\`hostname --fqdn\`
-if [ ! -d \$CHEFREPO/cookbooks/apt ] ; then
-  if [ $PLATFORM = "ubuntu" ]
-    echo "install apt cookbook from community opscode"
-  s  u ubuntu -c "knife cookbook site install apt"
+if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
+  echo -e "\nCOPYING EXTRAS $CHEFREPO...\n"
+  sleep 2
+  if [ $VERBOSE ]; then
+    rsync -av $CHEFREPO/ $MYCHEFREPO/
+  else
+    rsync -av $CHEFREPO/ $MYCHEFREPO/ > /dev/null 2>&1
   fi
 fi
-echo "uploading chef repo cookbooks..."
-( cd \$CHEFREPO ; su ubuntu -c "knife cookbook upload --all" )
-echo "running chef client to register"
-chef-client
-echo "listing /etc/chef"
-ls -ald /etc/chef/*
-echo "listing knife clients"
-su ubuntu -c "knife node list"
-echo "adding run list to admin node..."
-RUNLIST=\`cat \$CHEFREPO/admin_run_list\`
-for ckbk in \$RUNLIST; do
-  echo "knife node run_list add \$FQDN \$ckbk"
-  su ubuntu -c "knife node run_list add \$FQDN \$ckbk"
+
+BASE_COOKBOOKS="chef-client logrotate cron"
+for i in $BASE_COOKBOOKS; do
+  COOKBOOKD="$MYCHEFREPO/cookbooks/$i"
+  if [ ! -f "$COOKBOOKD/README.md" ]; then
+    if [ ! -d "$COOKBOOKD" ]; then
+      mkdir -p $COOKBOOKD
+    fi
+    if [ -f "$DOWNLOADS/$i/README.md" ]; then
+      echo -e "\n$DOWNLOADS/$i cookbook already exists - skipping download\n"
+    else
+      echo -e "\nDownloading $i cookbook from github\n"
+      OUTPUT=`(cd $TMPDIR; curl -kLs https://github.com/opscode-cookbooks/$i/tarball/master | tar -zxv)`
+      DLTMP="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+      mv $DLTMP $DOWNLOADS/$i
+    fi
+    if [ $VERBOSE ]; then
+      rsync -av $DOWNLOADS/$i/ $COOKBOOKD/
+    else
+      rsync -av $DOWNLOADS/$i/ $COOKBOOKD/ > /dev/null 2>&1
+    fi
+  else
+    echo -e "\n$COOKBOOKD cookbook already exists - skipping download\n"
+  fi
 done
-echo "running chef client to invoke run list"
-chef-client
-sleep 10
-if [ $PLATFORM = "ubuntu" ]; then
-  sed -i 's,sh /root/first_run.sh.*,exit 0,' /etc/rc.local;
-  sed -i '/^\*.*$/d' /etc/issue
-  reboot
-elif [ $PLATFORM = "centos" ]; then
-  sed -i 's/sh \/root\/first_run.sh.*//' /etc/rc.local;
-  sed -i '/^\*.*$/d' /etc/issue
-fi
-EOF
-fi
 
-USER_HOME="$INITRD/root_skel/home/ubuntu"
-mkdir -p $USER_HOME
-if [ ! -d $USER_HOME ]; then
-  echo "Unable to create $USER_HOME" && exit 1
-fi
-KFRUN="$USER_HOME/knife_first_run.rb"
-if [ ! -f $KFRUN ]; then
-  cat>$KFRUN<<EOF
-#!/usr/bin/ruby
-require 'rubygems'
-require 'chef/knife'
-require 'ftools'
-homed='/home/ubuntu'
-homechf="#{homed}/.chef"
-repod="#{homed}/chef-repo"
-subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
-commands_loaded = subcommand_loader.load_commands
-knifeconf = Chef::Knife::Configure
-knifeconf.load_deps
-instance = knifeconf.new(["configure", "-i"])
-instance.config[:config_file]="#{homechf}/knife.rb"
-instance.config[:chef_server_url]='http://localhost:4000'
-instance.config[:node_name]='ubuntu'
-instance.config[:admin_client_name]='chef-webui'
-instance.config[:admin_client_key]="#{homechf}/webui.pem"
-instance.config[:validation_client_name]='chef-validator'
-instance.config[:validation_key]="#{homechf}/validation.pem"
-instance.config[:repository]="#{repod}"
-instance.run_with_pretty_exceptions
-EOF
-fi
-
-if [ $PLATFORM = "ubuntu" ]; then
-  if [ ! -f $ROOTD/late_command.sh ]; then
-  cat>$ROOTD/late_command.sh<<EOF
-  #!/bin/sh
-  mkdir /root/.ssh
-  chmod 700 /root/.ssh /root/first_run.sh
-  mv /root/authorized_keys /root/.ssh
-  chmod 400 /root/.ssh/authorized_keys
-  sed -i 's,quiet splash,quiet,' /etc/default/grub
-  echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
-  echo '**************************************************' >> /etc/issue
-  echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
-  echo '**************************************************' >> /etc/issue
-  sed -i 's,exit 0,sh /root/first_run.sh > /root/first_run.log 2>&1,' /etc/rc.local;
-EOF
-  fi
-elif [ $PLATFORM = "centos" ]; then
-  if [ ! -f $ROOTD/late_command.sh ]; then
-    cat>$ROOTD/late_command.sh<<EOF
-  #!/bin/sh
-  mkdir /root/.ssh
-  chmod 700 /root/.ssh /root/first_run.sh
-  mv /root/authorized_keys /root/.ssh
-  chmod 400 /root/.ssh/authorized_keys
-  echo 'GRUB_GFXPAYLOAD_LINUX=text' >> /etc/default/grub
-  echo '**************************************************' >> /etc/issue
-  echo '* INSTALL NOT COMPLETE - WILL REBOOT MOMENTARILY *' >> /etc/issue
-  echo '**************************************************' >> /etc/issue
-  echo 'sh /root/first_run.sh > /root/first_run.log 2>&1' >> /etc/rc.local;
-EOF
-  fi
-fi
-
-REPOERR="invalid dir structure (see https://github.com/opscode/chef-repo)"
-SUBDIRS="cookbooks certificates config data_bags environments roles"
-valid_chef_repo() {
-  DIR=$1
-  for sdir in $SUBDIRS; do
-    if [ ! -d $DIR/$sdir ]; then
-      echo "$DIR $REPOERR" && exit 1
-    fi
-  done
-}
-
-CHEFREPO="$USER_HOME/chef-repo"
-if [ $CHEFCDIR ]; then
-  # local dir specified
-  valid_chef_repo $CHEFCDIR
-  (cd $CHEFCDIR ; git status > /dev/null 2>&1)
-  if [ $? != 0 ]; then
-    echo "$CHEFCDIR needs to be valid git repo (git init)" && exit 1
-  fi
-  cp -arp $CHEFCDIR $CHEFREPO
-elif [ $CHEFGITH ]; then
-  # remote github repo
-  if [ -d $CHEFREPO ]; then
-    rm -rf $CHEFREPO
-  fi
-  CHEFGITN=`expr $CHEFGITH : '.*github.com/\(.*\).git'`
-  if [ ! $CHEFGITN ]; then
-    echo "$CHEFGITH invalid github repo url" && exit 1
-  fi
-  echo "Exporting chef github repo..."
-  OUTPUT=`(cd $TMPDIR; curl -kLs https://github.com/$CHEFGITN/tarball/master|tar -zxv)`
-  CHEFGITDIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
-  if [ ! $CHEFGITDIR ]; then
-    echo "Unable to download repo tarball" && exit 1
-  fi
-  valid_chef_repo $CHEFGITDIR
-  mv $CHEFGITDIR $CHEFREPO
-  CKBKDIR="$CHEFREPO/cookbooks"
-else
-  # no repo specified, so create empty chef-repo
-  echo "Creating empty chef repo..."
-  OPSCODE_URL='http://github.com/opscode/chef-repo/tarball/master'
-  OUTPUT=`(cd $TMPDIR ; curl -kLs $OPSCODE_URL|tar -zxv)`
-  OPSCODE_DIR="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
-  mv $OPSCODE_DIR $CHEFREPO
-  if [ ! -d $CHEFREPO ]; then
-    echo "Failed creating empty chef repo" && exit 1
-  fi
-  (cd $CHEFREPO ; git init ; git add * ; git commit -am 'first commit') > /dev/null 2>&1
-fi
-RUNLISTF="$CHEFREPO/admin_run_list"
-
-check_runlist() {
-  for ckbk in $CHEFRUNLIST; do
-    if [ $ckbk = 'apt']; then
-      continue
-    fi
-    if [ ! -d $CKBKDIR/$ckbk ]; then
-      echo "$ckbk invalid cookbook" && exit 1
-    fi
-  done
-}
-
-if [ $CHEFRUNLIST ]; then
-  CHEFRUNLIST=`echo $CHEFRUNLIST| sed 's/,/ /g'`
-  check_runlist
-  echo $CHEFRUNLIST > $RUNLISTF
-elif [ -f $RUNLISTF ]; then
-  CHEFRUNLIST=`cat $RUNLISTF|sed 's/,/ /g'`
-  check_runlist
-else
-  CHEFRUNLIST='apt apt::cacher-ng'
-  echo $CHEFRUNLIST > $RUNLISTF
-fi
-
-echo "Making the ISO..."
+echo -e "\nBUILDING INITRD.GZ...\n"
 # make the new initrd.gz
-(cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/initrd.gz)
+if [ $VERBOSE ]; then
+  (cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/install/initrd.gz)
+else
+  (cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/install/initrd.gz) > /dev/null 2>&1
+fi
 
-# iso it up
-mkisofs -q -r -V "Custom Install" -cache-inodes -J -l -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
+# CREATE ISO
+if [ $DRYRUN ]; then
+  echo -e "\nDRYRUN - skipping ISO creation\n"
+else
+  echo -e "\nBUILDING THE ISO IMAGE...\n"
+  sleep 2
+  if [ $VERBOSE ]; then
+    mkisofs -r -V "Custom Auto Ubuntu Install" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
+  else
+    mkisofs -quiet -r -V "Custom Auto Ubuntu Install" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
+  fi
+fi
+
+# CLEANUP
+if [ ! $KEEP ]; then
+  umount $MOUNTDIR
+  rm -rf $INITRD $ISODIR $MOUNTDIR
+fi
+
 if [ ! -f $ISO ]; then
   echo "Create ISO failed." && exit 1
 else
-  if [ $KEEP ]; then
-    echo "Temp dir: $TMPDIR"
+  if [ $DRYRUN ]; then
+    echo -e "\nsuccessfully completed\n" && exit 0
   else
-    rm -rf $TMPDIR
+    echo -e "\n$ISO successfully created\n" && exit 0
   fi
-  echo "$ISO successfully created" && exit 0
 fi

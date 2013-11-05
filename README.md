@@ -1,96 +1,43 @@
 # Stackjump
 
-Creates a preseeded mini iso to stand up fully automated Ubuntu install with Chef.
-
-The mini iso created will be small, we're talking less than 20MB.
-
-Ideal for those who don't want to mount a large DVD install ISO over IPMI.
-
-Useful for standing up the first admin server in a network deployment such as for Openstack or other cloud framework.
-
-## Installation
-
-Just download the stackjump script and execute it
-
-Note that it currently only works on Linux.
+A framework for generating custom Ubuntu auto-install ISO image and incorporates a Chef Server daemon in which the node will register itself against, auto configure knife as well as automatically register itself via chef-client against localhost.  It can be used to standup the initial jump node of an openstack zone.  It requires no network to stand up and can be incorporated with additional cookbooks such as complicated network interface configurations (bonding, vlan tagging) that will converge itself up to par once it has completed its initial installation and starts chef-client registration automatically.
 
 ## Usage
 
-	$ stackjump 
-	stackjump options
-	  -p preseed (or use [-d|-g] but -p will take precedence)
-	     Use the following optimized preseed but modify its settings to your environment:
-	     https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg
-	  -d directory (preseed.cfg must exist in dir root)
-	  -g github repo (must be github hosted)
-	  -a architecture [i386|amd64]
-	  -r release_codename (lsb_release -c)
-	  -o <file> Write output to <file> instead of custom.iso
-	  -k keep tmp dir
+ * Simplest - no args will default to Ubuntu 12.04.3 Precise 64-bit and output "custom.iso" to your current directory, and chef will only upload and run minimal chef-client cookbook.
 
-	  See http://github.com/jhtran/stackjump_skeleton
+   ./stackjump
 
-## Examples
+ * Custom iso name
 
-Simplest run, just give it the preseed file.  Use the pre-optimized fully automated [preseed here](https://raw.github.com/jhtran/stackjump_skeleton/master/preseed.cfg), but modify it to fit your environment.  
+  ./stackjump -o /home/me/foobar.iso
 
-The preseed sets default ubuntu user password to 'none' spelled exactly as such, but it is recommended you change it to something more secure.
+ * Dryrun - don't actually create the iso
 
-	$ stackjump -p mypreseed.cfg 
-	Downloading linux files..
-	custom.iso successfully created
+  ./stackjump -d
 
-If you want to keep the temp directory around
+ * Keep tempfiles
 
-	$ stackjump -p /tmp/mypreseed.cfg -k
-	Downloading linux files..
-	Temp dir: /tmp/0418121303
-	custom.iso successfully created
+  ./stackjump -k
 
-Use the -d arg and no need to pass -p, but just make sure the dir has
-a preseed.cfg (named exactly as such) in its root directory.
+ * Verbose
 
-	$ stackjump -d /tmp/root_skeleton
+  ./stackjump -V
 
-If you want files to be injected into the OS at runtime, here's example of how to make your dir skeleton from scratch.
+ * Advanced - although the framework has options to specify other Ubunt versions, releases and arch, it hasn't been tested yet.
 
-NOTE if you decide to include a preseed instead of passing it as a 
-seperate argument, it must be named 'preseed.cfg' and must be located 
-in the root of the dir you'll be using.
-See [stackjump_skeleton](http://github.com/jhtran/stackjump_skeleton) as an example skeleton dir.
+   ./stackjump -v 14.04 -r trusty -a i386
 
-	$ mkdir -p /tmp/root_skel/home/ubuntu/.ssh /tmp/root_skel/etc
-	$ cp mypreseed.cfg /tmp/root_skel/preseed.cfg
-	$ cp mypubkeys /tmp/root_skel/home/ubuntu/.ssh/authorized_keys
-	$ cp /etc/some.config /tmp/root_skel/etc
+## Chef Server
 
-	$ stackjump -d /tmp/root_skel
+* The following has not been thoroughly tested
 
-Using -p preseed arg with a -d or a -g will use the preseed from -p 
-regardless if a preseed.cfg exists in those dirs
+By default, Stackjump will load only the minimal chef-client cookbook, which enables automatic chef-client interval jobs against itself (localhost).  However, the framework can accept additional chef-repo (cookbooks, roles, data_bags).  Just use -c and point it to your chef-repo.  This will ensure all of the cookbooks will get uploaded to its chef-server installation.  Then modify the first_run.sh script to add any cookbooks and recipes to the node's initial run_list.
 
-	$ stackjump -d /tmp/root_skel -p mypreseed.cfg
+  * git clone git@github.com:me/chef-repo /home/me/chef-repo
 
-Output a different iso name other than default custom.iso
+  * add ' knife node run_list add mynode.mydomain.com "recipe[mycookbook::myrecipe]" ' to first_run.sh
 
-	$ stackjump -p mypreseed.cfg -o myubuntu.iso
+  * ./stackjump -c /home/me/chef-repo
 
-Specify an architecture (i386 or amd64) if diff than your workstation
-
-	$ stackjump -p mypreseed.cfg -a amd64
-
-Specify an Ubuntu distro codename other than the default (natty)
-
-	$ stackjump -p mypreseed.cfg -r oneiric
-	$ stackjump -p mypreseed.cfg -r precise -a amd64
-	$ stackjump -p mypreseed.cfg -r maverick -a i386
-
-## Testing
-
-These tests rely on roundup (https://github.com/bmizerany/roundup)
-
-NOTE For these tests to pass successfully, it will require internet connectivity.
-
-Just execute 'roundup' in the tests dir.
-
-	$ cd tests && roundup
+Hypothetically, in the above scenario, once the node auto installs and stands up , you should be able to login as root and do a "knife cookbook list" and see the new cookbook(s) you've uploaded.  As well as "knife node show mynode.mydomain.com" and see the updated run_list.
