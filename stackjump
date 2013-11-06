@@ -20,6 +20,7 @@ fi
 USAGE="$0 options
   -d dry run don't create iso
   -c chef repo dir
+  -gc chef repo git url
   -a architecture [i386|amd64]
   -r release_codename (oneiric, natty, maverick, etc)
   -v release_version
@@ -34,6 +35,8 @@ while [ $1 ];do
         DRYRUN=1;;
     -c) shift
         CHEFREPO=$1;;
+    -gc) shift
+        CHEFREPO_URL=$1;;
     -a) shift
         ARCH=$1;;
     -r) shift
@@ -234,6 +237,23 @@ if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
   fi
 fi
 
+## REMOTE CHEF REPO - GIT URL
+
+if [ $CHEFREPO_URL ]; then
+  CHEFTMPD="$TMPDIR/DOWNLOADS/chef-repo_download"
+  if [ -d $CHEFTMPD ]; then
+    echo -e "\n$CHEFTMPD already exists - skipping git clone\n"
+  else
+    git clone $CHEFREPO_URL $CHEFTMPD
+  fi
+  (cd $CHEFTMPD && bundle exec berks install --path $CHEFTMPD)
+  if [ $VERBOSE ]; then
+    rsync -av $CHEFTMPD/ $MYCHEFREPO/ --exclude='.git/*'
+  else
+    rsync -av $CHEFTMPD/ $MYCHEFREPO/ --exclude='.git/*' > /dev/null 2>&1
+  fi
+fi
+
 BASE_COOKBOOKS="chef-client logrotate cron"
 for i in $BASE_COOKBOOKS; do
   COOKBOOKD="$MYCHEFREPO/cookbooks/$i"
@@ -259,8 +279,8 @@ for i in $BASE_COOKBOOKS; do
   fi
 done
 
+# BUILD INITRD.GZ
 echo -e "\nBUILDING INITRD.GZ...\n"
-# make the new initrd.gz
 if [ $VERBOSE ]; then
   (cd $INITRD ; find . | cpio -H newc --create | gzip -9 > $ISODIR/install/initrd.gz)
 else
