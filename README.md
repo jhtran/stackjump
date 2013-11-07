@@ -36,6 +36,8 @@ A framework for generating custom Ubuntu auto-install ISO image and incorporates
 
    ./stackjump -v 14.04 -r trusty -a i386
 
+ * custom scripts at first run - any custom scripts you want to execute at first run, put into the custom_scripts directory (instead of modifying the first_run.sh, it will automatically be executed
+
 ## Chef Server
 
 By default, Stackjump will load only the minimal chef-client cookbook, which enables automatic chef-client interval jobs against itself (localhost).  However, the framework can accept additional chef-repo (cookbooks, roles, data_bags).  Use -c to point it to your chef-repo directory -OR- use -gc to point it to your git repository url.  This will ensure all of the cookbooks will get uploaded to its chef-server installation.  Then modify the first_run.sh script to add any cookbooks or recipes or roles to the node's initial run_list.

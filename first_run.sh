@@ -1,4 +1,9 @@
 #!/bin/sh
+
+# stackjump default first_run.sh
+# DO NOT MODIFY THIS FILE
+# any custom commands should be added as a script in 'custom_scripts' directory
+
 export HOME="/root"
 export FQDN=`hostname -f`
 update-grub
@@ -18,6 +23,13 @@ knife environment from file /root/extras/chef-repo/environments/*.json
 knife node run_list add $FQDN "recipe[chef-client]"
 sleep 2
 chef-client
+echo -e "\nCHEF & KNIFE INSTALLED AND CONFIGURED\n"
+# *** CUSTOM SCRIPTS EXECUTE ***
+CUSTOM_SCRIPTD="/root/extras/custom_scripts"
+for SCRIPT in $CUSTOM_SCRIPTD/*; do
+  chmod 755 $SCRIPT
+  $SCRIPT
+done
+# *** END ***
 sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
 reboot
-# stackjump default first_run.sh

@@ -3,13 +3,13 @@
 
 # password hash to set for 'ubuntu' user account on install
 # default set to 'none' spelled out
-MYPASSWD='$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'
-KNIFE_PASSWD='mypassword'
-NODE_NAME='myjumpnode'
-
-# as of 11/05/13 these are the lastest versions
-CHEF_CLIENT_VER="11.8.0-1"
-CHEF_SERVER_VER="11.0.8-1"
+source stackjump.config
+MYPASSWD=${UBUNTU_PWHASH:-'$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'}
+MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
+MYNODENAME=${NODE_NAME:-myjumpnode}
+MYDOMAINNAME=${DOMAIN_NAME:-mydomain.com}
+MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
+MYCHEFSERVERVER=${CHEF_SERVER_VR:-11.0.8-1}
 
 WHOAMI=`whoami`
 if [ $WHOAMI != "root" ]; then
@@ -27,6 +27,7 @@ USAGE="$0 options
   -rl chef run list for jump node (comma delimited)
   -o output iso
   -V verbose
+  -t tmpdir
   -k keep tmp dir"
 
 while [ $1 ];do
@@ -49,6 +50,8 @@ while [ $1 ];do
          CHEFRUNLIST=$1;;
     -k) shift
         KEEP=1;;
+    -t) shift
+        TMPDIR=$1;;
     -V) shift
         VERBOSE=1;;
     *) echo "$USAGE" && exit 1;;
@@ -56,44 +59,47 @@ while [ $1 ];do
   shift
 done
 
-echo -e "\n## This tool should only be run on a Linux workstation ##"
-echo "## This code is customized for AT&T environment usage only ##"
-echo -e "## So far only tested on Precise Pangolin 12.04.3 x64 ##\n"
+echo -e "\n!! This tool should only be run on a Linux workstation     !!"
+echo "!! This code is customized for AT&T environment usage only !!"
+echo -e "!! So far only tested on Precise Pangolin 12.04.3 x64      !!\n"
 
-sleep 2
-
-TMPDIR="/tmp/stackjump"
 if [ ! $REL ]; then
   REL='precise'
 fi
 
-ISODIR="$TMPDIR/ISO"
-INITRD="$TMPDIR/initrd"
-DOWNLOADS="$TMPDIR/DOWNLOADS"
+MYTMPDIR=${TMPDIR:-/tmp/stackjump}
+ISODIR="$MYTMPDIR/ISO"
+ISODIR_EXTRAS="$ISODIR/extras"
+INITRD="$MYTMPDIR/initrd"
+DOWNLOADS="$MYTMPDIR/DOWNLOADS"
+MOUNTDIR="$MYTMPDIR/mount"
+EXTRAS="$INITRD/extras"
+CUSTOM_SCRIPTSD="$ISODIR_EXTRAS/custom_scripts"
+MYCHEFREPO="$ISODIR_EXTRAS/chef-repo"
 
-if [ ! -d $TMPDIR ]; then
-  mkdir -p $TMPDIR
-fi
-
-if [ ! -d "$DOWNLOADS" ]; then
-  mkdir -p "$DOWNLOADS"
-fi
-
-if [ ! -d $ISODIR ]; then
-  mkdir -p $ISODIR
-fi
-
-if [ ! -d $INITRD ]; then
-  mkdir -p $INITRD
-fi
+for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCHEFREPO/cookbooks $MYCHEFREPO/roles; do
+  if [ ! -d $DIR ]; then
+    mkdir -p $DIR
+  fi
+done
 
 ## SANITY CHECKS ##
 
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
     echo "$BIN needs to be installed to run stackjump" && exit 1
+    exit 1
   fi
 done
+
+if [ $CHEFREPO_URL ]; then
+  for BIN in git bundle; do
+    if [ ! `which $BIN` ]; then
+      echo "$BIN needs to be installed to run stackjump with github repo url" && exit 1
+      exit 1
+    fi
+  done
+fi
 
 if [ ! $ISO ]; then
   ISO='custom.iso'
@@ -134,18 +140,13 @@ else
   curl $ISOURL -o $DOWNLOADS/$ISONAME
 fi
 
-MOUNTDIR="$TMPDIR/mount"
-if [ ! -d $MOUNTDIR ]; then
-  mkdir -p $MOUNTDIR
-fi
 if [ -d $MOUNTDIR/isolinux ]; then
   echo -e "\nISO already mounted $MOUNTDIR - skipping mount\n"
 else
   echo -e "\nMounting to $MOUNTDIR...\n"
-  mount -o loop $DOWNLOADS/$ISONAME $MOUNTDIR
+  mount -r -o loop $DOWNLOADS/$ISONAME $MOUNTDIR
 fi
 echo -e "\nCopying contents of $ISONAME to $ISODIR\n"
-sleep 2
 if [ $VERBOSE ]; then
   rsync -av $MOUNTDIR/ $ISODIR/
 else
@@ -176,33 +177,32 @@ EOF
 
 echo -e "\nINJECTING PRESEED AND CUSTOM SCRIPTS\n"
 
-cp preseed.cfg $INITRD
-sed -i "s/MYPASSWD/$MYPASSWD/g" $INITRD/preseed.cfg
+cat preseed.cfg | sed "s/MYPASSWD/$MYPASSWD/" | sed "s/MYNODENAME/$MYNODENAME/" |\
+  sed "s/MYDOMAIN/$MYDOMAIN/" > $INITRD/preseed.cfg
 
-EXTRAS="$INITRD/extras"
-if [ ! -d $EXTRAS/root/.ssh ]; then
-  mkdir -p $EXTRAS/root/.ssh
+for HDIR in "root" "home/ubuntu"; do
+  if [ ! -d "$EXTRAS/$HDIR/.ssh" ]; then
+    mkdir -p "$EXTRAS/$HDIR/.ssh"
+  fi
+  cp authorized_keys $EXTRAS/$HDIR/.ssh/authorized_keys
+done
+cp first_run.sh late_command.sh $EXTRAS/root
+if [ $VERBOSE ]; then
+  rsync -av custom_scripts/ $CUSTOM_SCRIPTSD/
+else
+  rsync -av custom_scripts/ $CUSTOM_SCRIPTSD/ > /dev/null 2>&1
 fi
-if [ ! -d $EXTRAS/home/ubuntu/.ssh ]; then
-  mkdir -p $EXTRAS/home/ubuntu/.ssh
-fi
-cp first_run.sh late_command.sh knife_first_run $INITRD/extras/root
-cp authorized_keys $EXTRAS/root/.ssh/authorized_keys
-cp authorized_keys $EXTRAS/home/ubuntu/.ssh
-sed -i "s/MYPASSWORD/$KNIFE_PASSWD/g" $EXTRAS/root/knife_first_run
-sed -i "s/MYJUMPNODE/$NODE_NAME/g" $EXTRAS/root/knife_first_run
+cat knife_first_run | sed "s/MYPASSWORD/$MYKNIFEPASSWD/g" |\
+   sed "s/MYJUMPNODE/${MYNODENAME}_admin/g" > $EXTRAS/root/knife_first_run
 
 # DOWNLOAD LATEST CHEF OMNIBUS PACKAGES
-if [ ! -d $ISODIR/extras ] ; then
-  mkdir $ISODIR/extras
-fi
 
 OMNIBUS_URL="https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu"
 IFS=. read -r maj min _ <<< "$VER"
 OMNI_VER="$maj.$min"
 # Only available in x86_64
 OMNI_ARCH="x86_64"  
-CHEFCLIENT="chef_$CHEF_CLIENT_VER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+CHEFCLIENT="chef_$MYCHEFCLIENTVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
 CHEFC_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFCLIENT"
 if [ -f $DOWNLOADS/$CHEFCLIENT ]; then
   echo -e "\n$DOWNLOADS/$CHEFCLIENT exists - skipping chef client download\n"
@@ -210,9 +210,9 @@ else
   echo -e "\nDownloading CHEF-CLIENT OMNIBUS $DOWNLOADS/$CHEFCLIENT\n"
   curl $CHEFC_URL -o $DOWNLOADS/$CHEFCLIENT
 fi
-cp $DOWNLOADS/$CHEFCLIENT $ISODIR/extras/$CHEFCLIENT
+cp $DOWNLOADS/$CHEFCLIENT $ISODIR_EXTRAS/$CHEFCLIENT
 
-CHEFSERVER="chef-server_$CHEF_SERVER_VER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+CHEFSERVER="chef-server_$MYCHEFSERVERVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
 CHEFS_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFSERVER"
 if [ -f $DOWNLOADS/$CHEFSERVER ]; then
   echo -e "\n$DOWNLOADS/$CHEFSERVER exists - skipping chef server download\n"
@@ -220,16 +220,11 @@ else
   echo -e "\nDownloading CHEF-SERVER OMNIBUS $DOWNLOADS/$CHEFSERVER\n"
   curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
 fi
-cp $DOWNLOADS/$CHEFSERVER $ISODIR/extras/$CHEFSERVER
+cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
 
 ## IMPORT THE CHEF REPO
-MYCHEFREPO="$ISODIR/extras/chef-repo"
-if [ ! -d $MYCHEFREPO ]; then
-  mkdir -p $MYCHEFREPO/cookbooks $MYCHEFREPO/roles
-fi
 if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
   echo -e "\nCOPYING EXTRAS $CHEFREPO...\n"
-  sleep 2
   if [ $VERBOSE ]; then
     rsync -av $CHEFREPO/ $MYCHEFREPO/
   else
@@ -240,7 +235,7 @@ fi
 ## REMOTE CHEF REPO - GIT URL
 
 if [ $CHEFREPO_URL ]; then
-  CHEFTMPD="$TMPDIR/DOWNLOADS/chef-repo_download"
+  CHEFTMPD="$MYTMPDIR/DOWNLOADS/chef-repo_download"
   if [ -d $CHEFTMPD ]; then
     echo -e "\n$CHEFTMPD already exists - skipping git clone\n"
   else
@@ -265,8 +260,8 @@ for i in $BASE_COOKBOOKS; do
       echo -e "\n$DOWNLOADS/$i cookbook already exists - skipping download\n"
     else
       echo -e "\nDownloading $i cookbook from github\n"
-      OUTPUT=`(cd $TMPDIR; curl -kLs https://github.com/opscode-cookbooks/$i/tarball/master | tar -zxv)`
-      DLTMP="$TMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+      OUTPUT=`(cd $MYTMPDIR; curl -kLs https://github.com/opscode-cookbooks/$i/tarball/master | tar -zxv)`
+      DLTMP="$MYTMPDIR/`echo $OUTPUT|awk '{print $1}'`"
       mv $DLTMP $DOWNLOADS/$i
     fi
     if [ $VERBOSE ]; then
@@ -292,7 +287,6 @@ if [ $DRYRUN ]; then
   echo -e "\nDRYRUN - skipping ISO creation\n"
 else
   echo -e "\nBUILDING THE ISO IMAGE...\n"
-  sleep 2
   if [ $VERBOSE ]; then
     mkisofs -r -V "Custom Auto Ubuntu Install" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o $ISO $ISODIR
   else
