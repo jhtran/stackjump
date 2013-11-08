@@ -239,7 +239,8 @@ if [ $CHEFREPO_URL ]; then
   if [ -d $CHEFTMPD ]; then
     echo -e "\n$CHEFTMPD already exists - skipping git clone\n"
   else
-    git clone $CHEFREPO_URL $CHEFTMPD
+    SSH_AUTH_SOCK=$(find /tmp/ssh-* -user `who am i|awk '{print $1}'` -name agent\* -printf '%T@ %p\n' 2>/dev/null | sort -k 1nr | sed 's/^[^ ]* //' | head -n 1)
+    SSH_AUTH_SOCK=$SSH_AUTH_SOCK git clone $CHEFREPO_URL $CHEFTMPD
   fi
   (cd $CHEFTMPD && bundle exec berks install --path $CHEFTMPD)
   if [ $VERBOSE ]; then
