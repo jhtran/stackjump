@@ -9,7 +9,8 @@ MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
 MYNODENAME=${NODE_NAME:-myjumpnode}
 MYDOMAINNAME=${DOMAIN_NAME:-mydomain.com}
 MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
-MYCHEFSERVERVER=${CHEF_SERVER_VR:-11.0.8-1}
+MYCHEFSERVERVER=${CHEF_SERVER_VER:-11.0.8-1}
+MYDEFAULTNIC=${DEFAULT_NIC:-eth0}
 
 WHOAMI=`whoami`
 if [ $WHOAMI != "root" ]; then
@@ -20,7 +21,6 @@ fi
 USAGE="$0 options
   -d dry run don't create iso
   -c chef repo dir
-  -gc chef repo git url
   -a architecture [i386|amd64]
   -r release_codename (oneiric, natty, maverick, etc)
   -v release_version
@@ -36,8 +36,6 @@ while [ $1 ];do
         DRYRUN=1;;
     -c) shift
         CHEFREPO=$1;;
-    -gc) shift
-        CHEFREPO_URL=$1;;
     -a) shift
         ARCH=$1;;
     -r) shift
@@ -91,15 +89,6 @@ for BIN in fakeroot cpio mkisofs curl; do
     exit 1
   fi
 done
-
-if [ $CHEFREPO_URL ]; then
-  for BIN in git bundle; do
-    if [ ! `which $BIN` ]; then
-      echo "$BIN needs to be installed to run stackjump with github repo url" && exit 1
-      exit 1
-    fi
-  done
-fi
 
 if [ ! $ISO ]; then
   ISO='custom.iso'
@@ -178,7 +167,7 @@ EOF
 echo -e "\nINJECTING PRESEED AND CUSTOM SCRIPTS\n"
 
 cat preseed.cfg | sed "s/MYPASSWD/$MYPASSWD/" | sed "s/MYNODENAME/$MYNODENAME/" |\
-  sed "s/MYDOMAIN/$MYDOMAIN/" > $INITRD/preseed.cfg
+  sed "s/MYDOMAIN/$MYDOMAIN/" | sed "s/MYDEFAULTNIC/$MYDEFAULTNIC/" > $INITRD/preseed.cfg
 
 for HDIR in "root" "home/ubuntu"; do
   if [ ! -d "$EXTRAS/$HDIR/.ssh" ]; then
@@ -229,24 +218,6 @@ if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
     rsync -av $CHEFREPO/ $MYCHEFREPO/
   else
     rsync -av $CHEFREPO/ $MYCHEFREPO/ > /dev/null 2>&1
-  fi
-fi
-
-## REMOTE CHEF REPO - GIT URL
-
-if [ $CHEFREPO_URL ]; then
-  CHEFTMPD="$MYTMPDIR/DOWNLOADS/chef-repo_download"
-  if [ -d $CHEFTMPD ]; then
-    echo -e "\n$CHEFTMPD already exists - skipping git clone\n"
-  else
-    SSH_AUTH_SOCK=$(find /tmp/ssh-* -user `who am i|awk '{print $1}'` -name agent\* -printf '%T@ %p\n' 2>/dev/null | sort -k 1nr | sed 's/^[^ ]* //' | head -n 1)
-    SSH_AUTH_SOCK=$SSH_AUTH_SOCK git clone $CHEFREPO_URL $CHEFTMPD
-  fi
-  (cd $CHEFTMPD && bundle ; bundle exec berks install --path $CHEFTMPD)
-  if [ $VERBOSE ]; then
-    rsync -av $CHEFTMPD/ $MYCHEFREPO/ --exclude='.git/*'
-  else
-    rsync -av $CHEFTMPD/ $MYCHEFREPO/ --exclude='.git/*' > /dev/null 2>&1
   fi
 fi
 

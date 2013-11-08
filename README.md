@@ -18,10 +18,6 @@ NOTE: When using the ISO image, after the Ubuntu installation is complete it wil
 
   ./stackjump -c /path/to/chef-repo
 
- * chef-repo github url - stackjump will git clone your github url, do a berks install, and upload (cookbooks, roles, envs) to your new jump server
-
-  ./stackjump -gc https://github.com/att-cloud/chef-repo
-
  * Dryrun - don't actually create the iso
 
   ./stackjump -d
@@ -42,7 +38,7 @@ NOTE: When using the ISO image, after the Ubuntu installation is complete it wil
 
 ## Chef Server
 
-By default, Stackjump will load only the minimal chef-client cookbook, which enables automatic chef-client interval jobs against itself (localhost).  However, the framework can accept additional chef-repo (cookbooks, roles, data_bags).  Use -c to point it to your chef-repo directory -OR- use -gc to point it to your git repository url.  This will ensure all of the cookbooks will get uploaded to its chef-server installation.  Then modify the first_run.sh script to add any cookbooks or recipes or roles to the node's initial run_list.
+By default, Stackjump will load only the minimal chef-client cookbook, which enables automatic chef-client interval jobs against itself (localhost).  However, the framework can accept additional chef-repo (cookbooks, roles, data_bags).  Use -c to point it to your chef-repo directory.  This will ensure all of the cookbooks will get uploaded to its chef-server installation.  Then modify the first_run.sh script to add any cookbooks or recipes or roles to the node's initial run_list.
 
 As an example:
 
