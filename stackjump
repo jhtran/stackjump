@@ -7,7 +7,7 @@ source stackjump.config
 MYPASSWD=${UBUNTU_PWHASH:-'$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'}
 MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
 MYNODENAME=${NODE_NAME:-myjumpnode}
-MYDOMAINNAME=${DOMAIN_NAME:-mydomain.com}
+MYDOMAIN=${DOMAIN_NAME:-mydomain.com}
 MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
 MYCHEFSERVERVER=${CHEF_SERVER_VER:-11.0.8-1}
 MYDEFAULTNIC=${DEFAULT_NIC:-eth0}
@@ -210,6 +210,19 @@ else
   curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
 fi
 cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
+
+## AT&T SPECIFIC - DOWNLOAD VLAN & IFENSLAVE PKGS FOR COOKBOOK-NETWORKING
+  # NEEDS TO BE IMPROVED - WHAT IF NOT RUNNING FROM UBUNTU WORKSTATION AND OR DIFF RELEASE?
+
+for PKG in ifenslave-2.6 vlan; do
+  PKGURL=`apt-cache show $PKG|egrep "^Filename:"|awk '{print $2}'`
+  PKGN=`echo $PKGURL|sed 's,^.*\/,,g'`
+  if [ ! -f "$DOWNLOADS/$PKGN" ]; then
+    echo -e "\nDownloading $DOWNLOADS/$PKG\n"
+    curl "http://archive.ubuntu.com/ubuntu/$PKGURL" -o $DOWNLOADS/$PKGN
+  fi
+  cp $DOWNLOADS/$PKGN $ISODIR_EXTRAS/$PKGN
+done
 
 ## IMPORT THE CHEF REPO
 if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
