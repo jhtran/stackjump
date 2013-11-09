@@ -20,8 +20,9 @@ knife configure client /etc/chef && chef-client
 knife cookbook upload -o /root/extras/chef-repo/cookbooks --all
 knife role from file /root/extras/chef-repo/roles/*.json
 knife environment from file /root/extras/chef-repo/environments/*.json
+knife node from file /root/extras/jumpnode.json 
 knife node run_list add $FQDN "recipe[chef-client]"
-knife node run_list add $FQDN "role[booted]"
+# add any other run_list items to jumpnode.json
 sleep 2
 chef-client
 echo -e "\nCHEF & KNIFE INSTALLED AND CONFIGURED\n"

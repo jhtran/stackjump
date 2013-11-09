@@ -4,6 +4,7 @@
 # DO NOT MODIFY THIS FILE
 
 mkdir /root/.ssh /home/ubuntu/.ssh
+chown -R ubuntu:ubuntu /home/ubuntu
 cp -r /media/cdrom/extras /root
 chmod 700 /root/.ssh /root/first_run.sh
 sed -i 's,quiet splash,quiet,' /etc/default/grub

@@ -1,0 +1,26 @@
+{
+  "name": "MYFQDN",
+  "chef_environment": "_default",
+  "run_list": [
+    "recipe[networking]"
+  ],
+  "normal": {
+    "networking": {
+      "interfaces": {
+        "bond0": {
+          "address": "BOND0IP",
+          "bond-mode": "active-backup",
+          "netmask": "BOND0MASK",
+          "gateway": "BOND0GW"
+        }
+      },
+      "udev": {
+        "bus_order": [
+          BOND0BUSORDER
+        ]
+      }
+    },
+    "tags": [
+    ]
+  }
+}

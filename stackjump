@@ -7,7 +7,7 @@ source stackjump.config
 MYPASSWD=${UBUNTU_PWHASH:-'$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'}
 MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
 MYNODENAME=${NODE_NAME:-myjumpnode}
-MYDOMAINNAME=${DOMAIN_NAME:-mydomain.com}
+MYDOMAIN=${DOMAIN_NAME:-mydomain.com}
 MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
 MYCHEFSERVERVER=${CHEF_SERVER_VER:-11.0.8-1}
 MYDEFAULTNIC=${DEFAULT_NIC:-eth0}
@@ -82,6 +82,11 @@ for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCH
 done
 
 ## SANITY CHECKS ##
+
+if [ ! $CHEFREPO ] || [ ! -f $CHEFREPO/cookbooks/networking/README.md ]; then
+  echo -e "\nMISSING COOKBOOK: 'networking' - Ensure that you've specified a chef-repo directory using '-c'\n"
+  exit 1
+fi
 
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
@@ -210,6 +215,33 @@ else
   curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
 fi
 cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
+
+## AT&T SPECIFIC - DOWNLOAD VLAN & IFENSLAVE PKGS FOR COOKBOOK-NETWORKING
+  # NEEDS TO BE IMPROVED - WHAT IF NOT RUNNING FROM UBUNTU WORKSTATION AND OR DIFF RELEASE?
+
+for PKG in ifenslave-2.6 vlan; do
+  PKGURL=`apt-cache show $PKG|egrep "^Filename:"|awk '{print $2}'`
+  PKGN=`echo $PKGURL|sed 's,^.*\/,,g'`
+  if [ ! -f "$DOWNLOADS/$PKGN" ]; then
+    echo -e "\nDownloading $DOWNLOADS/$PKG\n"
+    curl "http://archive.ubuntu.com/ubuntu/$PKGURL" -o $DOWNLOADS/$PKGN
+  fi
+  cp $DOWNLOADS/$PKGN $ISODIR_EXTRAS/$PKGN
+done
+
+if [ -z "$MYDOMAIN" ]; then
+  MYFQDN="$MYNODENAME"
+else
+  MYFQDN="$MYNODENAME.$MYDOMAIN"
+fi
+BOND0IP=${BOND0_IP:-192.168.199.199}
+BOND0MASK=${BOND0_MASK:-255.255.255.0}
+BOND0GW=${BOND0_GW:-192.168.199.1}
+BOND0BUSORDER=${BOND0_BUSORDER:-""}
+
+cat jumpnode.json | sed "s/BOND0IP/$BOND0IP/" | sed "s/BOND0MASK/$BOND0MASK/" | \
+  sed "s/BOND0GW/$BOND0GW/" | sed "s/MYFQDN/$MYFQDN/" | \
+  sed "s/BOND0BUSORDER/$BOND0BUSORDER/" > $ISODIR_EXTRAS/jumpnode.json
 
 ## IMPORT THE CHEF REPO
 if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
