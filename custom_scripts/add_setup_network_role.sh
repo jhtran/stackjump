@@ -11,11 +11,15 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
   "run_list": [
     "recipe[networking]"
   ],
-  "description": "An interim state that ALL nodes are initially checked into, before they are assigned their proper role.",
+  "description": "Initial network bonding and vlan convergence",
   "chef_type": "role",
   "override_attributes": {
     "reboot-handler": {
-      "enabled_role": "setup-network"
+      "enabled_role": "setup-network",
+      "post_boot_runlist": [
+        "recipe[chef-client]",
+        "role[booted]"
+      ]
     },
     "networking": {
       "interfaces": {
@@ -40,3 +44,4 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
 EOF
 knife role from file /root/extras/chef-repo/roles/setup-network.json
 knife node run_list add $FQDN "role[setup-network]"
+chef-client

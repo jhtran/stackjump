@@ -2,13 +2,25 @@
 
 A framework for generating custom Ubuntu auto-install ISO image and incorporates a Chef Server daemon in which the node will register itself against, auto configure knife as well as automatically register itself via chef-client against localhost.  It can be used to standup the initial jump node of an openstack zone.  It requires no network to stand up and can be incorporated with additional cookbooks such as complicated network interface configurations (bonding, vlan tagging) that will converge itself up to par once it has completed its initial installation and starts chef-client registration automatically.
 
-## Note
+## Post Install Note
 
-When using the ISO image, after the Ubuntu installation is complete it will reboot once and run the "first_boot.sh" script to setup chef-server and other post installation final touches.   During the reboot you will see the Ubuntu loading screen and it may appear to hang but the startup process takes about ~5 minutes to get back to a login screen.  If it takes significantly longer, you can do an Alt+F2 to get an alternate login console for troubleshooting.
+Using the stackjump generated ISO, after the Ubuntu installation is complete it will reboot once and run the "first_boot.sh" script to setup chef-server and other post installation final touches.   
+
+During the reboot you will see the Ubuntu loading screen and it may appear to hang but the startup process takes about ~5 minutes to get back to a login screen briefly, before it is restarted a second time (see below).
+
+If it takes significantly longer, you can hit ESC to watch the console or do an Alt+F2 to get an alternate login console for troubleshooting.
+
+After the second reboot, the system should be ready for you to login and verify the network configuration is correct and the network(s) accessible.
+
+The expected run_list after the second reboot is "recipe[chef-client]" and "role[booted]"
+
+## Initial Network Convergence
+
+This AT&T version of stackjump will automatically add cookbook-networking & cookbook-reboot-handler to the run list and therefore some custom packages (vlan & ifenslave-2.6) have been added to the stackjump build process.  On the first chef-client run, this cookbook execution should converge the bonded and vlan nic configurations as you'd expect, in order to connect to the various networks including the public internet.  Currently, the cookbook-networking default recipe relies on some pre-existing attributes for node['networking']['bus_order'] & node['networking']['bond'] information, usually injected by a manul intervention via substructure, however, we've configured a custom role "setup-network" with these attrs as an override, however, this role will be removed from the node run_list when the networking::default recipe executes reboot-handler it will clean out the run_list.
 
 ## TODO
 
-This AT&T version of stackjump will automatically add cookbook-networking & cookbook-reboot-handler to the run list and therefore some custom packages (vlan & ifenslave-2.6) have been added to the stackjump build process.  On the first chef-client run, this cookbook execution should converge the bonded and vlan nic configurations as you'd expect, in order to connect to the various networks including the public internet.  Currently, the cookbook-networking default recipe relies on some pre-existing attributes for node['networking']['bus_order'] & node['networking']['bond'] information, usually injected by a manul intervention via substructure. To do a full end to end automation, it is highly recommended we take the approach of modifying the cookbook-networking recipes to not require this manual intervention and be able to bring up the network without substructure.  This will allow substructure to be integrated into chef for full automation, once the network has been converged properly.
+If we could make the att-cloud "networking" & "reboot-handler" cookbooks public (not requiring authentication in order to clone them), then it would be more easily automated into stackjump without having to designate it in a chef-repo manually.
 
 ## Usage
 
