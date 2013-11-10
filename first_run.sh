@@ -9,8 +9,8 @@ export FQDN=`hostname -f`
 update-grub
 dpkg -i /root/extras/*.deb # install chef-client|server
 /usr/bin/chef-server-ctl reconfigure > /root/reconfigure.out 2>&1
-echo "Waiting 60 seconds before configuring knife..."
-sleep 60
+echo "Waiting 5 seconds before configuring knife..."
+sleep 5
 chmod 755 /root/knife_first_run
 if [ -d /root/.chef ]; then
   rm -rf /root/.chef
@@ -24,6 +24,7 @@ knife node run_list add $FQDN "recipe[chef-client]"
 sleep 2
 chef-client
 echo -e "\nCHEF & KNIFE INSTALLED AND CONFIGURED\n"
+sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
 # *** CUSTOM SCRIPTS EXECUTE ***
 CUSTOM_SCRIPTD="/root/extras/custom_scripts"
 for SCRIPT in $CUSTOM_SCRIPTD/*; do
@@ -31,5 +32,4 @@ for SCRIPT in $CUSTOM_SCRIPTD/*; do
   $SCRIPT
 done
 # *** END ***
-sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
 reboot

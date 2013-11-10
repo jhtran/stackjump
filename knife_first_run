@@ -4,7 +4,7 @@ require 'chef/knife'
 
 homed='/root'
 homechf="#{homed}/.chef"
-repod="#{homed}/chef-repo"
+repod="#{homed}/extras/chef-repo"
 confd="/etc/chef-server"
 subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
 commands_loaded = subcommand_loader.load_commands
