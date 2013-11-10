@@ -21,7 +21,6 @@ fi
 USAGE="$0 options
   -d dry run don't create iso
   -c chef repo dir
-  -a architecture [i386|amd64]
   -r release_codename (oneiric, natty, maverick, etc)
   -v release_version
   -rl chef run list for jump node (comma delimited)
@@ -36,8 +35,6 @@ while [ $1 ];do
         DRYRUN=1;;
     -c) shift
         CHEFREPO=$1;;
-    -a) shift
-        ARCH=$1;;
     -r) shift
         REL=$1;;
     -v) shift
@@ -57,9 +54,9 @@ while [ $1 ];do
   shift
 done
 
-echo -e "\n!! This tool should only be run on a Linux workstation     !!"
-echo "!! This code is customized for AT&T environment usage only !!"
-echo -e "!! So far only tested on Precise Pangolin 12.04.3 x64      !!\n"
+echo -e "\n!! This tool should only be run on an Ubuntu workstation     !!"
+echo "!! This code is customized for AT&T environment usage only   !!"
+echo -e "!! Tested only on Precise Pangolin (12.04.3) x86_64          !!\n"
 
 if [ ! $REL ]; then
   REL='precise'
@@ -83,6 +80,21 @@ done
 
 ## SANITY CHECKS ##
 
+if [ ! $CHEFREPO ]; then 
+  echo -e "\nEnsure that you've specified a chef-repo directory using '-c';  At minimum it needs to contain 'networking' and 'reboot-handler' cookbooks\n"
+  exit 1
+fi
+if [ ! -d $CHEFREPO ]; then
+  echo -e "\n$CHEFREPO is not a valid directory"
+  exit 1
+fi
+for i in networking reboot-handler; do
+  if [ ! -f "$CHEFREPO/cookbooks/$i/README.md" ]; then
+    echo -e "\nMISSING COOKBOOK: '$CHEFREPO/cookbooks/$i' "
+    exit 1
+  fi
+done
+
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
     echo "$BIN needs to be installed to run stackjump" && exit 1
@@ -94,18 +106,7 @@ if [ ! $ISO ]; then
   ISO='custom.iso'
 fi
 
-if [ ! $ARCH ]; then
-  ARCH=`arch`
-fi
-
-case $ARCH in
-  'i686') ARCH='i386';;
-  'x86_64') ARCH='amd64';;
-esac
-
-if [ $ARCH != 'i386' ] && [ $ARCH != 'amd64' ]; then
-  echo "Architecture $ARCH is not valid.  (amd64|i386)" && exit 1
-fi
+ARCH="amd64"
 
 if [ ! $VER]; then
   VER='12.04.3'
@@ -189,8 +190,7 @@ cat knife_first_run | sed "s/MYPASSWORD/$MYKNIFEPASSWD/g" |\
 OMNIBUS_URL="https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu"
 IFS=. read -r maj min _ <<< "$VER"
 OMNI_VER="$maj.$min"
-# Only available in x86_64
-OMNI_ARCH="x86_64"  
+OMNI_ARCH='x86_64'
 CHEFCLIENT="chef_$MYCHEFCLIENTVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
 CHEFC_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFCLIENT"
 if [ -f $DOWNLOADS/$CHEFCLIENT ]; then
@@ -217,9 +217,16 @@ cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
 for PKG in ifenslave-2.6 vlan; do
   PKGURL=`apt-cache show $PKG|egrep "^Filename:"|awk '{print $2}'`
   PKGN=`echo $PKGURL|sed 's,^.*\/,,g'`
+  grep $ARCH $PKGN > /dev/null 2>&1
+  # ensure the right pkg depending on $ARCH
+  if [ $? != 0 ]; then
+    PKGN=`echo $PKGN|sed "s/i386/amd64/"`
+  fi
   if [ ! -f "$DOWNLOADS/$PKGN" ]; then
-    echo -e "\nDownloading $DOWNLOADS/$PKG\n"
+    echo -e "\nDownloading $DOWNLOADS/$PKGN\n"
     curl "http://archive.ubuntu.com/ubuntu/$PKGURL" -o $DOWNLOADS/$PKGN
+  else
+    echo -e "\n$DOWNLOADS/$PKGN exists - skipping package download\n"
   fi
   cp $DOWNLOADS/$PKGN $ISODIR_EXTRAS/$PKGN
 done
