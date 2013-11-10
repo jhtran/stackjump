@@ -241,7 +241,7 @@ if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
   fi
 fi
 
-BASE_COOKBOOKS="chef-client logrotate cron"
+BASE_COOKBOOKS="chef-client logrotate cron chef_handler"
 for i in $BASE_COOKBOOKS; do
   COOKBOOKD="$MYCHEFREPO/cookbooks/$i"
   if [ ! -f "$COOKBOOKD/README.md" ]; then
