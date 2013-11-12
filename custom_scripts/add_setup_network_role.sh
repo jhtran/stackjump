@@ -1,5 +1,12 @@
 #!/bin/bash
 
+source /root/extras/stackjump.config
+
+BOND0IP=${BOND0_IP:-192.168.199.199}
+BOND0MASK=${BOND0_NETMASK:-255.255.255.0}
+BOND0GW=${BOND0_GATEWAY:-192.168.1.1}
+BOND0BUSORDER=${BOND0_BUSORDER:-'"0000:00:05.0","0000:00:06.0","0000:00:07.0","0000:00:08.0"'}
+
 cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
 {
   "name": "setup-network",
@@ -24,18 +31,15 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
     "networking": {
       "interfaces": {
         "bond0": {
-          "address": "192.168.1.195",
-          "netmask": "255.255.255.0",
-          "bond-mode": "active-backup",
-          "gateway": "192.168.1.1"
+          "address": "$BOND0IP",
+          "netmask": "$BOND0MASK",
+          "bond-mode": "$BOND0MODE",
+          "gateway": "$BOND0GW"
         }
       },
       "udev": {
         "bus_order": [
-          "0000:06:00.0",
-          "0000:06:00.1",
-          "0000:03:00.0",
-          "0000:03:00.1"
+          $BOND0BUSORDER
         ]
       }
     }

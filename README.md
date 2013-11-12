@@ -71,3 +71,7 @@ As an example:
 * ./stackjump -c /home/me/chef-repo
 
 Once the node auto installs and stands up , you should be able to login as root and do a "knife cookbook list" and see the new cookbook(s) you've uploaded.  As well as "knife node show mynode.mydomain.com" and see the updated run_list.
+
+## VM Configuration
+
+The stackjump generated ISOs have been tested on VirtualBox as well as Parallels.  Just make sure you configure 4 network interfaces, emulating one of our real bare metal boxes.  Ensure the first two network interfaces belong to a network with internet connectivity and the last two network interfaces on an isolated network completely seperate from the first two interfaces.  When you modify the stackjump.config just ensure the BOND0_IP && NETMASK && GW information are legitimate address information that'll allow the vm to connect to your network, specifically at the minimum a legitimate ip for the gateway.
