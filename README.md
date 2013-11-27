@@ -24,6 +24,15 @@ Currently, the cookbook-networking default recipe relies on some pre-existing at
 
 If we could make the att-cloud "networking" & "reboot-handler" cookbooks public (not requiring authentication in order to clone them), then it would be more easily automated into stackjump without having to designate it in a chef-repo manually.
 
+## Chef-repo
+
+Your chef-repo must be in the following directory structure:
+
+* chef-repo/roles
+* chef-repo/environments
+* chef-repo/.cookbooks
+* TODO: databags
+
 ## Usage
 
 Before you run the command, edit the 'stackjump.config' and customize any of the parameters to fit your needs.
@@ -64,7 +73,7 @@ As an example:
 
 * git clone git@github.com:me/chef-repo /home/me/chef-repo
 
-* cd /home/me/chef-repo && bundle exec berks install --path /home/me/chef-repo/cookbooks
+* cd /home/me/chef-repo && bundle exec berks install
 
 * add ' knife node run_list add mynode.mydomain.com "recipe[mycookbook::myrecipe]" ' to ./custom_scripts/my_add_run_list_custom_script.sh
 

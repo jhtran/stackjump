@@ -75,8 +75,10 @@ MOUNTDIR="$MYTMPDIR/mount"
 EXTRAS="$INITRD/extras"
 CUSTOM_SCRIPTSD="$ISODIR_EXTRAS/custom_scripts"
 MYCHEFREPO="$ISODIR_EXTRAS/chef-repo"
+MYCOOKBOOKSD="$MYCHEFREPO/.cookbooks"
+MYROLESD="$MYCHEFREPO/roles"
 
-for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCHEFREPO/cookbooks $MYCHEFREPO/roles; do
+for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCOOKBOOKSD $MYROLESD; do
   if [ ! -d $DIR ]; then
     mkdir -p $DIR
   fi
@@ -92,9 +94,10 @@ if [ ! -d $CHEFREPO ]; then
   echo -e "\n$CHEFREPO is not a valid directory"
   exit 1
 fi
+COOKBOOKSD="$CHEFREPO/.cookbooks"
 for i in networking reboot-handler; do
-  if [ ! -f "$CHEFREPO/cookbooks/$i/README.md" ]; then
-    echo -e "\nMISSING COOKBOOK: '$CHEFREPO/cookbooks/$i' "
+  if [ ! -f "$COOKBOOKSD/$i/README.md" ]; then
+    echo -e "\nMISSING OR INVALID COOKBOOK: '$COOKBOOKSD/$i' "
     exit 1
   fi
 done
@@ -251,7 +254,7 @@ fi
 
 BASE_COOKBOOKS="chef-client logrotate cron chef_handler"
 for i in $BASE_COOKBOOKS; do
-  COOKBOOKD="$MYCHEFREPO/cookbooks/$i"
+  COOKBOOKD="$MYCOOKBOOKSD/$i"
   if [ ! -f "$COOKBOOKD/README.md" ]; then
     if [ ! -d "$COOKBOOKD" ]; then
       mkdir -p $COOKBOOKD

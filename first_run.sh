@@ -17,7 +17,7 @@ if [ -d /root/.chef ]; then
 fi
 /root/knife_first_run
 knife configure client /etc/chef && chef-client
-knife cookbook upload -o /root/extras/chef-repo/cookbooks --all
+knife cookbook upload -o /root/extras/chef-repo/.cookbooks --all
 knife role from file /root/extras/chef-repo/roles/*.json
 knife environment from file /root/extras/chef-repo/environments/*.json
 knife node run_list add $FQDN "recipe[chef-client]"
