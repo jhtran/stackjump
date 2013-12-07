@@ -30,7 +30,7 @@ Your chef-repo must be in the following directory structure:
 
 * chef-repo/roles
 * chef-repo/environments
-* chef-repo/.cookbooks
+* chef-repo/cookbooks
 * TODO: databags
 
 ## Usage

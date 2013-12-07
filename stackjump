@@ -95,7 +95,7 @@ if [ ! -d $CHEFREPO ]; then
   exit 1
 fi
 COOKBOOKSD="$CHEFREPO/cookbooks"
-for i in networking reboot-handler; do
+for i in $REQUIRED_COOKBOOKS; do
   if [ ! -f "$COOKBOOKSD/$i/README.md" ]; then
     echo -e "\nMISSING OR INVALID COOKBOOK: '$COOKBOOKSD/$i' "
     exit 1

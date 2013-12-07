@@ -44,16 +44,20 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
       "enabled_role": "setup-network",
       "post_boot_runlist": [
         "recipe[chef-client]",
-        "role[booted]"
+        "role[setup-bootstrap]"
       ]
     },
     "networking": {
+      "cidr": {
+        "mgmt": "0.0.0.0/0"
+      },
       "is_vm": $IS_VM,
       "interfaces": {
         "bond0": {
           "address": "$BOND0IP",
           "netmask": "$BOND0MASK",
           "bond-mode": "$BOND0MODE",
+          "dns-nameservers": [ "8.8.8.8" ],
           "gateway": "$BOND0GW"
         },
         "bond1.2001": {
@@ -70,6 +74,53 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
   }
 }
 EOF
-knife role from file /root/extras/chef-repo/roles/setup-network.json
+cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
+{
+  "name": "setup-bootstrap",
+  "default_attributes": {
+  },
+  "json_class": "Chef::Role",
+  "env_run_lists": {
+  },
+  "run_list": [
+    "recipe[infra-management::subs_bootstrap]"
+  ],
+  "description": "Initial network bonding and vlan convergence",
+  "chef_type": "role",
+  "override_attributes": {
+    "zone": "$ZONE",
+    "infra-management": {
+      "ghuser": "$GHUSER",
+      "ghpw": "$GHPW",
+      "is_vm": $IS_VM
+    },
+    "networking": {
+      "cidr": {
+        "mgmt": "0.0.0.0/0"
+      },
+      "is_vm": $IS_VM,
+      "interfaces": {
+        "bond0": {
+          "address": "$BOND0IP",
+          "netmask": "$BOND0MASK",
+          "bond-mode": "$BOND0MODE",
+          "dns-nameservers": [ "8.8.8.8" ],
+          "gateway": "$BOND0GW"
+        },
+        "bond1.2001": {
+          "address": "$BOND1IP",
+          "netmask": "$BOND1MASK"
+        }
+      },
+      "udev": {
+        "bus_order": [
+          $BUSORDER
+        ]
+      }
+    }
+  }
+}
+EOF
+knife role from file /root/extras/chef-repo/roles/*.json
 knife node run_list add $FQDN "role[setup-network]"
 chef-client
