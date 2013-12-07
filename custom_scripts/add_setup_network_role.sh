@@ -14,6 +14,12 @@ BOND1MASK=${BOND1_NETMASK:-255.255.255.0}
 BOND1GW=${BOND1_GATEWAY:-192.168.1.1}
 BOND1MODE=${BOND1_MODE:-active-backup}
 
+ZONE=${ZONE:-myzone}
+IS_VM=${IS_VM:-false}  # is this a vm? or bare metal?
+GHUSER=${GH_USER:-myghuser}
+GHPW=${GH_PW:-myghpassword}
+
+
 cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
 {
   "name": "setup-network",
@@ -28,6 +34,12 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
   "description": "Initial network bonding and vlan convergence",
   "chef_type": "role",
   "override_attributes": {
+    "zone": "$ZONE",
+    "infra-management": {
+      "ghuser": "$GHUSER",
+      "ghpw": "$GHPW",
+      "is_vm": $IS_VM
+    },
     "reboot-handler": {
       "enabled_role": "setup-network",
       "post_boot_runlist": [
@@ -36,6 +48,7 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
       ]
     },
     "networking": {
+      "is_vm": $IS_VM,
       "interfaces": {
         "bond0": {
           "address": "$BOND0IP",

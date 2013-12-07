@@ -75,7 +75,7 @@ MOUNTDIR="$MYTMPDIR/mount"
 EXTRAS="$INITRD/extras"
 CUSTOM_SCRIPTSD="$ISODIR_EXTRAS/custom_scripts"
 MYCHEFREPO="$ISODIR_EXTRAS/chef-repo"
-MYCOOKBOOKSD="$MYCHEFREPO/.cookbooks"
+MYCOOKBOOKSD="$MYCHEFREPO/cookbooks"
 MYROLESD="$MYCHEFREPO/roles"
 
 for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCOOKBOOKSD $MYROLESD; do
@@ -94,7 +94,7 @@ if [ ! -d $CHEFREPO ]; then
   echo -e "\n$CHEFREPO is not a valid directory"
   exit 1
 fi
-COOKBOOKSD="$CHEFREPO/.cookbooks"
+COOKBOOKSD="$CHEFREPO/cookbooks"
 for i in networking reboot-handler; do
   if [ ! -f "$COOKBOOKSD/$i/README.md" ]; then
     echo -e "\nMISSING OR INVALID COOKBOOK: '$COOKBOOKSD/$i' "
@@ -104,8 +104,8 @@ done
 
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
-    echo "$BIN needs to be installed to run stackjump" && exit 1
-    exit 1
+    echo "$BIN needs to be installed to run stackjump"
+    apt-get -qq -y install genisoimage fakeroot cpio curl
   fi
 done
 
