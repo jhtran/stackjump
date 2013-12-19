@@ -83,6 +83,7 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
   "env_run_lists": {
   },
   "run_list": [
+    "recipe[apt]",
     "recipe[infra-management::subs_bootstrap]"
   ],
   "description": "Initial network bonding and vlan convergence",
