@@ -22,14 +22,14 @@ GH_PW='mygitpassword'
 # management interface
 BOND0_MODE="active-backup"
 BOND0_IP="192.168.112.11"
-BOND0_NETMASK="255.255.255.192"
+BOND0_NETMASK="255.255.255.128"
 # BOND0_GATEWAY to access MANAGEMENT_CIDR
 BOND0_GATEWAY="192.168.112.1"
 MANAGEMENT_CIDR="192.168.112.0/20"
 
 # public vlan interface
 BOND1_2002_IP="75.55.108.11"
-BOND1_2002_NETMASK="255.255.240.0"
+BOND1_2002_NETMASK="255.255.254.0"
 DEFAULT_GATEWAY="75.55.108.1"
 
 ## Use lspci to find out what your bus order for NICS, for proper bonding.  Examples:
@@ -40,4 +40,4 @@ DEFAULT_GATEWAY="75.55.108.1"
 ## Below example used for quanta real hardware bus addresses
 #BUSORDER='"0000:06:00.0","0000:06:00.1","0000:03:00.0","0000:03:00.1"'
 ## Dell R720
-BUSORDER='"0000:01:00.0","0000:01:00.1","0000:44:00.0","0000:41:00.0"'
+BUSORDER='"0000:01:00.2","0000:01:00.3","0000:01:00.0","0000:01:00.1"'
