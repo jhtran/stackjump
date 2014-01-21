@@ -9,10 +9,11 @@ BOND0MASK=${BOND0_NETMASK:-255.255.255.0}
 BOND0GW=${BOND0_GATEWAY:-192.168.1.1}
 BOND0MODE=${BOND0_MODE:-active-backup}
 
-BOND1IP=${BOND1_IP:-192.168.199.199}
-BOND1MASK=${BOND1_NETMASK:-255.255.255.0}
-BOND1GW=${BOND1_GATEWAY:-192.168.1.1}
-BOND1MODE=${BOND1_MODE:-active-backup}
+MGMT_CIDR=${MANAGEMENT_CIDR:-'192.168.199.0/20'}
+
+BOND12002IP=${BOND1_2002_IP:-192.168.199.199}
+BOND12002MASK=${BOND1_2002_NETMASK:-255.255.255.0}
+DEFAULTGW=${DEFAULT_GATEWAY:-192.168.199.1}
 
 ZONE=${ZONE:-myzone}
 IS_VM=${IS_VM:-false}  # is this a vm? or bare metal?
@@ -49,10 +50,12 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
     },
     "networking": {
       "cidr": {
-        "mgmt": "0.0.0.0/0"
+        "ops": "0.0.0.0/0",
+        "mgmt": "$MGMT_CIDR"
       },
       "is_vm": $IS_VM,
       "interfaces": {
+        "ops": "bond1.2002",
         "bond0": {
           "address": "$BOND0IP",
           "netmask": "$BOND0MASK",
@@ -60,9 +63,10 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
           "dns-nameservers": [ "8.8.8.8" ],
           "gateway": "$BOND0GW"
         },
-        "bond1.2001": {
-          "address": "$BOND1IP",
-          "netmask": "$BOND1MASK"
+        "bond1.2002": {
+          "address": "$BOND12002IP",
+          "netmask": "$BOND12002MASK",
+          "gateway": "$DEFAULTGW"
         }
       },
       "udev": {
@@ -97,10 +101,12 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
     },
     "networking": {
       "cidr": {
-        "mgmt": "0.0.0.0/0"
+        "ops": "0.0.0.0/0",
+        "mgmt": "$MGMT_CIDR"
       },
       "is_vm": $IS_VM,
       "interfaces": {
+        "ops": "bond1.2002",
         "bond0": {
           "address": "$BOND0IP",
           "netmask": "$BOND0MASK",
@@ -108,9 +114,10 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
           "dns-nameservers": [ "8.8.8.8" ],
           "gateway": "$BOND0GW"
         },
-        "bond1.2001": {
-          "address": "$BOND1IP",
-          "netmask": "$BOND1MASK"
+        "bond1.2002": {
+          "address": "$BOND12002IP",
+          "netmask": "$BOND12002MASK",
+          "gateway": "$DEFAULTGW"
         }
       },
       "udev": {
