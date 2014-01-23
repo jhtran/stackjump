@@ -1,0 +1,153 @@
+#/bin/bash
+
+INTS=`ifconfig -a|cut -c 1-8|sort | grep -v lo|uniq -u`
+LOG="/root/network_setup.log"
+
+PUB_VLAN="2001"
+PUB_IP="192.168.1.169"
+PUB_MASK="255.255.255.0"
+PUB_GW="192.168.1.1"
+
+MGMT_IP="192.168.112.169"
+MGMT_MASK="255.255.255.0"
+IPMI_CIDR="192.168.112.0/24"
+MGMT_GW="192.168.112.1"
+
+function link {
+  ethtool $int | grep -i 'link detected'|grep 'yes' > /dev/null 2>&1
+}
+
+function flush {
+  ip address flush $PUB_VNIC > /dev/null 2>&1
+  vconfig rem $PUB_VNIC > /dev/null 2>&1
+}
+
+case $1 in
+start)
+echo "Starting network configuration..." > $LOG
+
+PUB_INT="false"
+
+# PUBLIC INTERFACE
+for int in $INTS; do
+  echo "Testing $int link..." | tee -a $LOG
+  ifconfig $int up
+  link
+  if [ $? != 0 ]; then
+    echo " - $int no link"| tee -a $LOG
+    continue
+  fi
+  echo " + $int found link"| tee -a $LOG
+
+  echo "Configuring public vlan $PUB_VLAN..."|tee -a $LOG
+  vconfig add $int $PUB_VLAN > /dev/null 2>&1
+  PUB_VNIC="${int}.${PUB_VLAN}"
+  if [ $? != 0 ]; then
+    echo " - Vlan config failure $int $PUB_VLAN"|tee -a $LOG
+    vconfig rem $PUB_VNIC
+    continue
+  fi
+  echo " + Vlan config successful $int $PUB_VLAN"|tee -a $LOG
+  ifconfig $PUB_VNIC up
+  echo "Assigning public ip..."| tee -a $LOG
+  ifconfig $PUB_VNIC $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
+  if [ $? != 0 ]; then
+    echo "  - failed"| tee -a $LOG
+    flush
+    continue
+  fi
+  echo "$PUB_VNIC ip assigned:"| tee -a $LOG
+  ifconfig $PUB_VNIC | grep 'inet addr'
+  echo "Testing ping $PUB_GW"| tee -a $LOG
+  ping -c 3 $PUB_GW > /dev/null 2>&1
+  if [ $? != 0 ]; then
+    echo " - unable to reach $PUB_GW"| tee -a $LOG
+    flush
+    continue
+  else
+    echo " + Success - $PUB_VNIC IS PUBLIC INTERFACE"| tee -a $LOG
+    PUB_INT="$int"
+    break
+  fi
+done
+
+# TEST INTERNET CONNECTIVITY
+PUBRESULT=""
+if [ $PUB_INT == 'false' ]; then
+  echo "PUBLIC INT NOT FOUND"
+  PUBRESULT="!! FAILURE - PUBLIC INTERFACE NOT FOUND !!"
+  echo $PUBRESULT| tee -a $LOG
+else
+  echo "$PUB_GW"
+  ifconfig eth0
+  echo "Adding default route $PUB_GW"|tee -a $LOG
+  route add default gw $PUB_GW > /dev/null 2>&1
+  echo "Testing internet connectivity..."| tee -a $LOG
+  ping -c 3 8.8.8.8 > /dev/null 2>&1
+  if [ $? != 0 ]; then
+    echo "  - Public interface unable to reach internet"| tee -a $LOG
+  else
+    PUBRESULT="SUCCESS - PUBLIC INTERNET REACHABLE"
+    echo $PUBRESULT| tee -a $LOG
+  fi
+fi
+
+function mgmt_flush {
+  ip address flush $int > /dev/null 2>&1
+}
+
+# MANAGEMENT INTERFACE
+MGMT_INT="false"
+echo "DISCOVERING MANAGEMENT INTERFACE"|tee -a $LOG
+for int in $INTS; do
+  if [ $int == $PUB_INT ]; then
+    continue
+  fi
+  echo $int|egrep "\." > /dev/null 2>&1
+  if [ $? == 0 ]; then
+    continue
+  fi
+  echo "Testing $int link..." | tee -a $LOG
+  ifconfig $int up
+  link
+  if [ $? != 0 ]; then
+    echo " - $int no link"| tee -a $LOG
+    continue
+  fi
+  echo " + $int found link"| tee -a $LOG
+
+  echo "Assigning management ip..."| tee -a $LOG
+  ifconfig $int $MGMT_IP netmask $MGMT_MASK > /dev/null 2>&1
+  if [ $? != 0 ]; then
+    echo "  - failed"| tee -a $LOG
+    mgmt_flush
+    continue
+  fi
+  echo "$int ip assigned:"| tee -a $LOG
+  ifconfig $int | grep 'inet addr'
+  echo "Testing ping $MGMT_GW"| tee -a $LOG
+  ping -c 3 $MGMT_GW > /dev/null 2>&1
+  if [ $? != 0 ]; then
+    echo " - unable to reach $MGMT_GW"| tee -a $LOG
+    mgmt_flush
+    continue
+  else
+    echo " + Success - $int IS MANAGEMENT INTERFACE"| tee -a $LOG
+    MGMT_INT="$int"
+    break
+  fi
+done
+
+if [ $MGMT_INT == 'false' ]; then
+  echo "!! FAILURE - MANAGEMENT INTERFACE NOT FOUND !!"| tee -a $LOG
+else
+  echo "Adding management route $MGMT_GW"|tee -a $LOG
+  route add -net $MGMT_CIDR gw $MGMT_GW > /dev/null 2>&1
+  if [ $? == 0 ]; then
+    echo "SUCCESS - MANAGEMENT NETWORK CONFIGURED"
+  fi
+fi
+echo $PUBRESULT|tee -a $LOG
+;;
+*) echo "Usage: $0 start";;
+esac
