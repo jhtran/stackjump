@@ -1,0 +1,34 @@
+{
+  "sources": {
+    "apt": {
+      "locked_version": "2.3.4"
+    },
+    "build-essential": {
+      "locked_version": "1.4.2"
+    },
+    "python": {
+      "locked_version": "1.4.4"
+    },
+    "yum": {
+      "locked_version": "3.0.4"
+    },
+    "networking": {
+      "locked_version": "0.8.4",
+      "git": "https://github.com/att-cloud/cookbook-networking.git",
+      "ref": "341bf16b36475f7dfb273b7220f2ff414829a2d4"
+    },
+    "reboot-handler": {
+      "locked_version": "0.2.3",
+      "git": "https://github.com/att-cloud/cookbook-reboot-handler.git",
+      "ref": "f7e22b7f6261423d24049d478adf23cfc57bf4ef"
+    },
+    "infra-management": {
+      "locked_version": "0.0.1",
+      "git": "https://github.com/jhtran/cookbook-infra-management.git",
+      "ref": "fb15b5e9e42df97c3b9d4a3f4820014e5c6b5643"
+    },
+    "chef_handler": {
+      "locked_version": "1.1.4"
+    }
+  }
+}

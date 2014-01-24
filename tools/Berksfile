@@ -1,0 +1,10 @@
+site :opscode
+
+cookbook 'apt'
+cookbook 'build-essential'
+cookbook 'python'
+cookbook 'yum'
+
+cookbook 'networking', github: 'att-cloud/cookbook-networking', protocol: :https
+cookbook 'reboot-handler', github: 'att-cloud/cookbook-reboot-handler', protocol: :https
+cookbook 'infra-management', github: 'jhtran/cookbook-infra-management', protocol: :https
