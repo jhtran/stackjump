@@ -73,7 +73,8 @@ As an example:
 
 * git clone git@github.com:me/chef-repo /home/me/chef-repo
 
-* cd /home/me/chef-repo && bundle exec berks install
+This will install just the minimum cookbooks necessary to run stackjump:
+* cd stackjump/tools && berks install --path /home/me/chef-repo/cookbooks
 
 * add ' knife node run_list add mynode.mydomain.com "recipe[mycookbook::myrecipe]" ' to ./custom_scripts/my_add_run_list_custom_script.sh
 

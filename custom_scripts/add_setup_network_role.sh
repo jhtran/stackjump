@@ -14,11 +14,14 @@ MGMT_CIDR=${MANAGEMENT_CIDR:-'192.168.199.0/20'}
 BOND12002IP=${BOND1_2002_IP:-192.168.199.199}
 BOND12002MASK=${BOND1_2002_NETMASK:-255.255.255.0}
 DEFAULTGW=${DEFAULT_GATEWAY:-192.168.199.1}
+BOND12001IP=${BOND1_2002_IP:-192.168.199.199}
+BOND12001MASK=${BOND1_2002_NETMASK:-255.255.255.0}
 
 ZONE=${ZONE:-myzone}
 IS_VM=${IS_VM:-false}  # is this a vm? or bare metal?
 GHUSER=${GH_USER:-myghuser}
 GHPW=${GH_PW:-myghpassword}
+SUBSDECRYPTPW=${SUBS_DECRYPT_PW:-subsdecryptpassword}
 
 
 cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
@@ -39,6 +42,7 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
     "infra-management": {
       "ghuser": "$GHUSER",
       "ghpw": "$GHPW",
+      "decryptpw": "$SUBSDECRYPTPW",
       "is_vm": $IS_VM
     },
     "reboot-handler": {
@@ -62,6 +66,10 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
           "bond-mode": "$BOND0MODE",
           "dns-nameservers": [ "8.8.8.8" ],
           "gateway": "$BOND0GW"
+        },
+        "bond1.2001": {
+          "address": "$BOND12001IP",
+          "netmask": "$BOND12001MASK"
         },
         "bond1.2002": {
           "address": "$BOND12002IP",
@@ -113,6 +121,10 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
           "bond-mode": "$BOND0MODE",
           "dns-nameservers": [ "8.8.8.8" ],
           "gateway": "$BOND0GW"
+        },
+        "bond1.2001": {
+          "address": "$BOND12001IP",
+          "netmask": "$BOND12001MASK"
         },
         "bond1.2002": {
           "address": "$BOND12002IP",
