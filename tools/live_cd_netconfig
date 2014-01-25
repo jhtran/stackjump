@@ -22,6 +22,10 @@ function flush {
   vconfig rem $PUB_VNIC > /dev/null 2>&1
 }
 
+function mlog {
+  echo $1| tee -a $LOG
+}
+
 case $1 in
 start)
 echo "Starting network configuration..." > $LOG
@@ -30,42 +34,49 @@ PUB_INT="false"
 
 # PUBLIC INTERFACE
 for int in $INTS; do
-  echo "Testing $int link..." | tee -a $LOG
+  mlog "Testing $int link..."
+  PTYPE=`ethtool $int|grep 'Supported port'|awk '{print $4}'`
+  if [ $PTYPE != 'FIBRE' ]; then
+    mlog " - $int not 10GbE"
+    continue
+  else
+    mlog " + $int is 10GbE" 
+  fi
   ifconfig $int up
   link
   if [ $? != 0 ]; then
-    echo " - $int no link"| tee -a $LOG
+    mlog " - $int no link"
     continue
   fi
-  echo " + $int found link"| tee -a $LOG
+  mlog " + $int found link"
 
-  echo "Configuring public vlan $PUB_VLAN..."|tee -a $LOG
+  mlog "Configuring public vlan $PUB_VLAN..."
   vconfig add $int $PUB_VLAN > /dev/null 2>&1
   PUB_VNIC="${int}.${PUB_VLAN}"
   if [ $? != 0 ]; then
-    echo " - Vlan config failure $int $PUB_VLAN"|tee -a $LOG
+    mlog " - Vlan config failure $int $PUB_VLAN"
     vconfig rem $PUB_VNIC
     continue
   fi
-  echo " + Vlan config successful $int $PUB_VLAN"|tee -a $LOG
+  mlog " + Vlan config successful $int $PUB_VLAN"
   ifconfig $PUB_VNIC up
-  echo "Assigning public ip..."| tee -a $LOG
+  mlog "Assigning public ip..."
   ifconfig $PUB_VNIC $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
   if [ $? != 0 ]; then
-    echo "  - failed"| tee -a $LOG
+    mlog "  - failed"
     flush
     continue
   fi
-  echo "$PUB_VNIC ip assigned:"| tee -a $LOG
+  mlog "$PUB_VNIC ip assigned:"
   ifconfig $PUB_VNIC | grep 'inet addr'
-  echo "Testing ping $PUB_GW"| tee -a $LOG
+  mlog "Testing ping $PUB_GW"
   ping -c 3 $PUB_GW > /dev/null 2>&1
   if [ $? != 0 ]; then
-    echo " - unable to reach $PUB_GW"| tee -a $LOG
+    mlog " - unable to reach $PUB_GW"
     flush
     continue
   else
-    echo " + Success - $PUB_VNIC IS PUBLIC INTERFACE"| tee -a $LOG
+    mlog " + Success - $PUB_VNIC IS PUBLIC INTERFACE"
     PUB_INT="$int"
     break
   fi
@@ -74,21 +85,20 @@ done
 # TEST INTERNET CONNECTIVITY
 PUBRESULT=""
 if [ $PUB_INT == 'false' ]; then
-  echo "PUBLIC INT NOT FOUND"
-  PUBRESULT="!! FAILURE - PUBLIC INTERFACE NOT FOUND !!"
-  echo $PUBRESULT| tee -a $LOG
+  PUBRESULT="!! FAILURE PUBLIC INTERFACE NOT FOUND !!"
+  mlog "$PUBRESULT"
 else
-  echo "$PUB_GW"
+  mlog "$PUB_GW"
   ifconfig eth0
-  echo "Adding default route $PUB_GW"|tee -a $LOG
+  mlog "Adding default route $PUB_GW"
   route add default gw $PUB_GW > /dev/null 2>&1
-  echo "Testing internet connectivity..."| tee -a $LOG
+  mlog "Testing internet connectivity..."
   ping -c 3 8.8.8.8 > /dev/null 2>&1
   if [ $? != 0 ]; then
-    echo "  - Public interface unable to reach internet"| tee -a $LOG
+    mlog "  - Public interface unable to reach internet"
   else
-    PUBRESULT="SUCCESS - PUBLIC INTERNET REACHABLE"
-    echo $PUBRESULT| tee -a $LOG
+    PUBRESULT="@@ SUCCESS - PUBLIC INTERNET REACHABLE @@"
+    mlog "$PUBRESULT"
   fi
 fi
 
@@ -98,56 +108,63 @@ function mgmt_flush {
 
 # MANAGEMENT INTERFACE
 MGMT_INT="false"
-echo "DISCOVERING MANAGEMENT INTERFACE"|tee -a $LOG
+mlog "DISCOVERING MANAGEMENT INTERFACE"
 for int in $INTS; do
+  PTYPE=`ethtool $int|grep 'Supported port'|awk '{print $4}'`
+  if [ $PTYPE != 'TP' ]; then
+    mlog " - $int not Twisted Pair (TP)"
+    continue
+  else
+    mlog " + $int is Twisted Pair (TP)"
+  fi
   if [ $int == $PUB_INT ]; then
     continue
   fi
-  echo $int|egrep "\." > /dev/null 2>&1
+  mlog $int|egrep "\." > /dev/null 2>&1
   if [ $? == 0 ]; then
     continue
   fi
-  echo "Testing $int link..." | tee -a $LOG
+  mlog "Testing $int link..." 
   ifconfig $int up
   link
   if [ $? != 0 ]; then
-    echo " - $int no link"| tee -a $LOG
+    mlog " - $int no link"
     continue
   fi
-  echo " + $int found link"| tee -a $LOG
+  mlog " + $int found link"
 
-  echo "Assigning management ip..."| tee -a $LOG
+  mlog "Assigning management ip..."
   ifconfig $int $MGMT_IP netmask $MGMT_MASK > /dev/null 2>&1
   if [ $? != 0 ]; then
-    echo "  - failed"| tee -a $LOG
+    mlog "  - failed"
     mgmt_flush
     continue
   fi
-  echo "$int ip assigned:"| tee -a $LOG
+  mlog "$int ip assigned:"
   ifconfig $int | grep 'inet addr'
-  echo "Testing ping $MGMT_GW"| tee -a $LOG
+  mlog "Testing ping $MGMT_GW"
   ping -c 3 $MGMT_GW > /dev/null 2>&1
   if [ $? != 0 ]; then
-    echo " - unable to reach $MGMT_GW"| tee -a $LOG
+    mlog " - unable to reach $MGMT_GW"
     mgmt_flush
     continue
   else
-    echo " + Success - $int IS MANAGEMENT INTERFACE"| tee -a $LOG
+    mlog " + Success - $int IS MANAGEMENT INTERFACE"
     MGMT_INT="$int"
     break
   fi
 done
 
 if [ $MGMT_INT == 'false' ]; then
-  echo "!! FAILURE - MANAGEMENT INTERFACE NOT FOUND !!"| tee -a $LOG
+  mlog "!! FAILURE - MANAGEMENT INTERFACE NOT FOUND !!"
 else
-  echo "Adding management route $MGMT_GW"|tee -a $LOG
+  mlog "Adding management route $MGMT_GW"
   route add -net $MGMT_CIDR gw $MGMT_GW > /dev/null 2>&1
   if [ $? == 0 ]; then
-    echo "SUCCESS - MANAGEMENT NETWORK CONFIGURED"
+    mlog "@@ SUCCESS - MANAGEMENT NETWORK CONFIGURED @@"
   fi
 fi
-echo $PUBRESULT|tee -a $LOG
+mlog "$PUBRESULT"
 ;;
 *) echo "Usage: $0 start";;
 esac
