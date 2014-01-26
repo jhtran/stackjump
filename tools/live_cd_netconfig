@@ -1,6 +1,6 @@
 #/bin/sh
 
-INTS=`ifconfig -a|cut -c 1-8|sort | grep -v lo|uniq -u`
+INTS=`ifconfig -a|cut -c 1-8|sort | egrep -v "lo|bond"|uniq -u`
 LOG="/root/network_setup.log"
 
 PUB_VLAN="2001"
@@ -8,8 +8,8 @@ PUB_IP="75.55.108.12"
 PUB_MASK="255.255.254.0"
 PUB_GW="75.55.108.1"
 
-MGMT_IP="192.168.112.12"
-MGMT_MASK="255.255.255.128"
+MGMT_IP="192.168.112.75"
+MGMT_MASK="255.255.255.0"
 IPMI_CIDR="172.16.0.0/16"
 MGMT_GW="192.168.112.1"
 
@@ -26,6 +26,14 @@ mlog() {
   echo $1| tee -a $LOG
 }
 
+manual() {
+  cat<<-EOF>>/etc/network/interfaces
+
+auto $int
+iface $int inet manual
+EOF
+}
+
 mgmt_flush() {
   ip address flush $int > /dev/null 2>&1
 }
@@ -38,6 +46,7 @@ echo "Starting network configuration..." > $LOG
 PUB_INT="false"
 
 # PUBLIC INTERFACE
+modprobe bonding
 for int in $INTS; do
   mlog "Testing $int link..."
   PTYPE=`ethtool $int|grep 'Supported port'|awk '{print $4}'`
@@ -51,6 +60,7 @@ for int in $INTS; do
   ethtool $int | grep -i 'link detected'|grep 'yes' > /dev/null 2>&1
   if [ $? != 0 ]; then
     mlog " - $int no link"
+    manual
     continue
   fi
   mlog " + $int found link"
@@ -61,6 +71,7 @@ for int in $INTS; do
   if [ $? != 0 ]; then
     mlog " - Vlan config failure $int $PUB_VLAN"
     vconfig rem $PUB_VNIC
+    manual
     continue
   fi
   mlog " + Vlan config successful $int $PUB_VLAN"
@@ -70,6 +81,7 @@ for int in $INTS; do
   if [ $? != 0 ]; then
     mlog "  - failed"
     flush
+    manual
     continue
   fi
   mlog "$PUB_VNIC ip assigned:"
@@ -79,6 +91,7 @@ for int in $INTS; do
   if [ $? != 0 ]; then
     mlog " - unable to reach $PUB_GW"
     flush
+    manual
     continue
   else
     mlog " + Success - $PUB_VNIC IS PUBLIC INTERFACE"
@@ -112,7 +125,7 @@ MGMT_INT="false"
 mlog "DISCOVERING MANAGEMENT INTERFACE"
 for int in $INTS; do
   PTYPE=`ethtool $int|grep 'Supported port'|awk '{print $4}'`
-  if [ $PTYPE != 'TP' ]; then
+  if [ "$PTYPE" != 'TP' ]; then
     mlog " - $int not Twisted Pair (TP)"
     continue
   else
@@ -125,12 +138,13 @@ for int in $INTS; do
   if [ $? = 0 ]; then
     continue
   fi
-  mlog "Testing $int link..." 
+#  mlog "Testing $int link..." 
   ifconfig $int up
+  sleep 5
   link
   if [ $? != 0 ]; then
     mlog " - $int no link"
-    continue
+#    continue
   fi
   mlog " + $int found link"
 
@@ -139,31 +153,40 @@ for int in $INTS; do
   if [ $? != 0 ]; then
     mlog "  - failed"
     mgmt_flush
+    manual
     continue
   fi
   mlog "$int ip assigned:"
-  ifconfig $int | grep 'inet addr'
-  mlog "Testing ping $MGMT_GW"
-  ping -c 3 $MGMT_GW > /dev/null 2>&1
-  if [ $? != 0 ]; then
-    mlog " - unable to reach $MGMT_GW"
-    mgmt_flush
-    continue
-  else
-    mlog " + Success - $int IS MANAGEMENT INTERFACE"
+  ifconfig $int | grep 'inet addr' | tee -a $LOG
+#  mlog "Testing ping $MGMT_GW"
+#  ping -c 3 $MGMT_GW > /dev/null 2>&1
+#  if [ $? != 0 ]; then
+#    mlog " - unable to reach $MGMT_GW"
+#    mgmt_flush
+#    continue
+#  else
+#    mlog " + Success - $int IS MANAGEMENT INTERFACE"
     MGMT_INT="$int"
+cat<<-EOF>> /etc/network/interfaces
+
+auto $int
+iface $int inet static
+  address $MGMT_IP
+  netmask $MGMT_MASK
+  gateway $MGMT_GW
+EOF
     break
-  fi
+#  fi
 done
 
 if [ $MGMT_INT = 'false' ]; then
   mlog "!! FAILURE - MANAGEMENT INTERFACE NOT FOUND !!"
 else
-  mlog "Adding management route $MGMT_GW"
-  route add -net $MGMT_CIDR gw $MGMT_GW > /dev/null 2>&1
-  if [ $? = 0 ]; then
+#  mlog "Adding management route $MGMT_GW"
+#  route add -net $MGMT_CIDR gw $MGMT_GW > /dev/null 2>&1
+#  if [ $? = 0 ]; then
     mlog "@@ SUCCESS - MANAGEMENT NETWORK CONFIGURED @@"
-  fi
+#  fi
 fi
 mlog "$PUBRESULT"
 ;;
