@@ -3,7 +3,7 @@
 INTS=`ifconfig -a|cut -c 1-8|sort | egrep -v "lo|bond"|uniq -u`
 LOG="/root/network_setup.log"
 
-PUB_VLAN="2001"
+PUB_VLAN="2002"
 PUB_IP="75.55.108.12"
 PUB_MASK="255.255.254.0"
 PUB_GW="75.55.108.1"
@@ -47,6 +47,10 @@ PUB_INT="false"
 
 # PUBLIC INTERFACE
 modprobe bonding
+vconfig add bond0 2002
+ifup bond0
+ifup bond0.2002
+
 for int in $INTS; do
   mlog "Testing $int link..."
   PTYPE=`ethtool $int|grep 'Supported port'|awk '{print $4}'`
@@ -60,41 +64,32 @@ for int in $INTS; do
   ethtool $int | grep -i 'link detected'|grep 'yes' > /dev/null 2>&1
   if [ $? != 0 ]; then
     mlog " - $int no link"
-    manual
     continue
   fi
   mlog " + $int found link"
 
-  mlog "Configuring public vlan $PUB_VLAN..."
-  vconfig add $int $PUB_VLAN > /dev/null 2>&1
-  PUB_VNIC="${int}.${PUB_VLAN}"
-  if [ $? != 0 ]; then
-    mlog " - Vlan config failure $int $PUB_VLAN"
-    vconfig rem $PUB_VNIC
-    manual
-    continue
-  fi
-  mlog " + Vlan config successful $int $PUB_VLAN"
-  ifconfig $PUB_VNIC up
-  mlog "Assigning public ip..."
-  ifconfig $PUB_VNIC $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
-  if [ $? != 0 ]; then
-    mlog "  - failed"
-    flush
-    manual
-    continue
-  fi
-  mlog "$PUB_VNIC ip assigned:"
-  ifconfig $PUB_VNIC | grep 'inet addr'
+  mlog "Attempting to add $int as slave to bond0"
+  ifenslave add bond0 $int
+  ifconfig bond0.2002 $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
+
   mlog "Testing ping $PUB_GW"
   ping -c 3 $PUB_GW > /dev/null 2>&1
   if [ $? != 0 ]; then
     mlog " - unable to reach $PUB_GW"
-    flush
-    manual
+    ifenslave -d bond0 $int
     continue
   else
     mlog " + Success - $PUB_VNIC IS PUBLIC INTERFACE"
+cat<<-EOF>>/etc/network/interfaces
+
+auto bond0.2002
+iface bond0.2002 inet static
+  address $PUB_IP
+  netmask $PUB_MASK
+  gateway $PUB_GW
+  vlan-raw-device bond0
+  dns-nameservers 8.8.8.8
+EOF
     PUB_INT="$int"
     break
   fi
@@ -106,8 +101,6 @@ if [ "$PUB_INT" = "false" ]; then
   PUBRESULT="!! FAILURE PUBLIC INTERFACE NOT FOUND !!"
   mlog "$PUBRESULT"
 else
-  mlog "$PUB_GW"
-  ifconfig eth0
   mlog "Adding default route $PUB_GW"
   route add default gw $PUB_GW > /dev/null 2>&1
   mlog "Testing internet connectivity..."
@@ -153,27 +146,18 @@ for int in $INTS; do
   if [ $? != 0 ]; then
     mlog "  - failed"
     mgmt_flush
-    manual
     continue
   fi
   mlog "$int ip assigned:"
   ifconfig $int | grep 'inet addr' | tee -a $LOG
-#  mlog "Testing ping $MGMT_GW"
-#  ping -c 3 $MGMT_GW > /dev/null 2>&1
-#  if [ $? != 0 ]; then
-#    mlog " - unable to reach $MGMT_GW"
-#    mgmt_flush
-#    continue
-#  else
-#    mlog " + Success - $int IS MANAGEMENT INTERFACE"
-    MGMT_INT="$int"
+  MGMT_INT="$int"
 cat<<-EOF>> /etc/network/interfaces
 
 auto $int
 iface $int inet static
   address $MGMT_IP
   netmask $MGMT_MASK
-  gateway $MGMT_GW
+  post-up route add -net $IPMI_CIDR gw $MGMT_GW
 EOF
     break
 #  fi
