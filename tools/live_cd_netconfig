@@ -47,9 +47,7 @@ PUB_INT="false"
 
 # PUBLIC INTERFACE
 modprobe bonding
-vconfig add bond0 2002
 ifup bond0
-ifup bond0.2002
 
 for int in $INTS; do
   mlog "Testing $int link..."
@@ -69,13 +67,17 @@ for int in $INTS; do
   mlog " + $int found link"
 
   mlog "Attempting to add $int as slave to bond0"
-  ifenslave add bond0 $int
+  ifenslave bond0 $int
+  vconfig add bond0 2002
+  sleep 2
   ifconfig bond0.2002 $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
+  sleep 2
 
   mlog "Testing ping $PUB_GW"
   ping -c 3 $PUB_GW > /dev/null 2>&1
   if [ $? != 0 ]; then
     mlog " - unable to reach $PUB_GW"
+    vconfig rem bond0.2002
     ifenslave -d bond0 $int
     continue
   else
