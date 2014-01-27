@@ -69,9 +69,9 @@ for int in $INTS; do
   mlog "Attempting to add $int as slave to bond0"
   ifenslave bond0 $int
   vconfig add bond0 2002
-  sleep 2
+  sleep 10
   ifconfig bond0.2002 $PUB_IP netmask $PUB_MASK > /dev/null 2>&1
-  sleep 2
+  sleep 20
 
   mlog "Testing ping $PUB_GW"
   ping -c 3 $PUB_GW > /dev/null 2>&1
@@ -90,8 +90,14 @@ iface bond0.2002 inet static
   netmask $PUB_MASK
   gateway $PUB_GW
   vlan-raw-device bond0
-  dns-nameservers 8.8.8.8
+
+auto eth0
+allow-bond0 eth0
+iface eth0 inet manual
+  bond-master bond0
 EOF
+    ifdown $int --force
+    ifdown bond0 --force
     PUB_INT="$int"
     break
   fi
@@ -103,9 +109,6 @@ if [ "$PUB_INT" = "false" ]; then
   PUBRESULT="!! FAILURE PUBLIC INTERFACE NOT FOUND !!"
   mlog "$PUBRESULT"
 else
-  mlog "Adding default route $PUB_GW"
-  route add default gw $PUB_GW > /dev/null 2>&1
-  mlog "Testing internet connectivity..."
   ping -c 3 8.8.8.8 > /dev/null 2>&1
   if [ $? != 0 ]; then
     mlog "  - Public interface unable to reach internet"
@@ -161,20 +164,20 @@ iface $int inet static
   netmask $MGMT_MASK
   post-up route add -net $IPMI_CIDR gw $MGMT_GW
 EOF
-    break
-#  fi
+  ifdown $int --force
+  break
 done
+
+ifup $MGMT_INT
+ifup $PUB_INT
 
 if [ $MGMT_INT = 'false' ]; then
   mlog "!! FAILURE - MANAGEMENT INTERFACE NOT FOUND !!"
 else
-#  mlog "Adding management route $MGMT_GW"
-#  route add -net $MGMT_CIDR gw $MGMT_GW > /dev/null 2>&1
-#  if [ $? = 0 ]; then
-    mlog "@@ SUCCESS - MANAGEMENT NETWORK CONFIGURED @@"
-#  fi
+  mlog "@@ SUCCESS - MANAGEMENT NETWORK CONFIGURED @@"
 fi
 mlog "$PUBRESULT"
+echo "nameserver 8.8.8.8 > /etc/resolve.conf"
 ;;
 *) echo "Usage: $0 start";;
 esac
