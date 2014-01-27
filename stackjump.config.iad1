@@ -1,0 +1,41 @@
+# as of 11/05/13 these are the lastest versions
+CHEF_CLIENT_VER="11.8.0-1"
+CHEF_SERVER_VER="11.0.8-1"
+
+UBUNTU_PWHASH='$6$TPJQ8Xi3$mAJxX4vNqFqLblkmyEsqdnYNPNPWrrO.LCJyIc6jS14GRwJHIxEyRpJ6sxV.JWySZsPDISSn3OiGwZwQNbx910'
+KNIFE_PWSTR='myknifepassword'
+# zone name is same as the data file name in deployment-data
+ZONE='iad1'
+# node name shold exist in zone data file in deployment-data
+NODE_NAME='a1r1'
+
+DOMAIN_NAME='int.iad1.attcompute.com'
+DEFAULT_NIC='eth0'
+IS_VM='false'
+REQUIRED_COOKBOOKS="networking reboot-handler python infra-management build-essential yum apt"
+
+# github user/password used to download substructure and deployment-data
+GH_USER='att-cloud-ro'
+GH_PW='mygitpassword'
+# password to decrypt substructure data_bags
+SUBS_DECRYPT_PW='mysubsdecryptpw'
+
+# management interface
+BOND0_MODE="active-backup"
+BOND0_IP="192.168.112.11"
+BOND0_NETMASK="255.255.255.192"
+# BOND0_GATEWAY to access MANAGEMENT_CIDR
+BOND0_GATEWAY="192.168.112.1"
+MANAGEMENT_CIDR="172.16.0.0/16"
+
+# public vlan interface
+BOND1_2002_IP="64.143.224.11"
+BOND1_2002_NETMASK="255.255.254.0"
+DEFAULT_GATEWAY="64.143.224.1"
+
+# ops vlan interface
+BOND1_2001_IP="192.168.128.11"
+BOND1_2001_NETMASK="255.255.255.128"
+
+## Below example used for quanta real hardware bus addresses
+BUSORDER='"0000:06:00.0","0000:06:00.1","0000:03:00.0","0000:03:00.1"'
