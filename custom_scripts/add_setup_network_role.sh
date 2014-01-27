@@ -96,7 +96,9 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
   },
   "run_list": [
     "recipe[apt]",
-    "recipe[infra-management::subs_bootstrap]"
+    "recipe[infra-management::subs_bootstrap]",
+    "recipe[infra-management::chef-repo]",
+    "recipe[infra-management::setup_ipmi]"
   ],
   "description": "Initial network bonding and vlan convergence",
   "chef_type": "role",
@@ -105,6 +107,7 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
     "infra-management": {
       "ghuser": "$GHUSER",
       "ghpw": "$GHPW",
+      "decryptpw": "$SUBSDECRYPTPW",
       "is_vm": $IS_VM
     },
     "networking": {
