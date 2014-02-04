@@ -17,7 +17,7 @@ PUBLIC_GW="75.55.108.1"
 
 
 apt-get update
-apt-get install python-software-properties ethtool ifenslave vlan curl aptitude openssh-server ipmitool -y
+apt-get install ethtool ifenslave vlan curl aptitude openssh-server openipmi freeipmi-tools -y
 add-apt-repository ppa:jared-dominguez/wsmancli
 apt-get update
 apt-get install wsmancli -y
@@ -29,7 +29,7 @@ curl -u $GITHUB_USERNAME -H "Accept: application/vnd.github.raw" "https://api.gi
 
 apt-get purge resolvconf
 
-cat>>EOF<</etc/ntework/interfaces
+cat<<EOF>/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -66,7 +66,7 @@ source /etc/network/interfaces.d/*
 EOF
 
 UDEVF="/etc/udev/rules.d/70-persistent-net-rules.conf"
-PREFX=ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="pci", KERNELS=="'
+PREFX='ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="pci", KERNELS=="'
 ETHCOUNT=0
 
 echo "" > $UDEVF
@@ -75,7 +75,7 @@ for i in $BUSORDER; do
 done
 
 mkdir /etc/network/interfaces.d
-cat>>EOF<</etc/network/interfaces.d/bond0
+cat<<EOF>>/etc/network/interfaces.d/bond0
 auto bond0
 iface bond0 inet static
   address ${MGMT_IP}
@@ -86,7 +86,7 @@ iface bond0 inet static
   bond-slaves none
 EOF
 
-cat>>EOF<</etc/network/interfaces.d/bond1.2002
+cat<<EOF>>/etc/network/interfaces.d/bond1.2002
 auto bond1.2002
 iface bond1.2002 inet static
   address ${PUBLIC_IP}
