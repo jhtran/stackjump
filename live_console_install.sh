@@ -97,3 +97,12 @@ EOF
 
 sed -i '21i\exit 0' /usr/share/initramfs-tools/scripts/casper-bottom/23networking
 update-initramfs -u -k all
+
+if [ ! -d /home/ubuntu/.ssh ]; then
+  mkdir -p /home/ubuntu/.ssh
+fi
+
+echo "********************"
+echo "* INSTALL COMPLETE *"
+echo "********************"
+echo "Don't forget to install ssh public keys in /root/.ssh/authorized_keys and or /home/ubuntu/.ssh/authorized_keys"
