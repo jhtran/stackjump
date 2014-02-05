@@ -4,7 +4,7 @@
 
 GITHUB_USERNAME="jhtran"
 
-BUS_ORDER="06:00.0 06:00.1 03:00.0 03:00.1"
+BUSORDER="06:00.0 06:00.1 03:00.0 03:00.1"
 MGMT_IP="192.168.112.12"
 MGMT_NETMASK="255.255.255.128"
 MGMT_GW="192.168.112.1"
@@ -71,6 +71,7 @@ ETHCOUNT=0
 echo "" > $UDEVF
 for i in $BUSORDER; do
   echo "${PREFX}0000:$i\", NAME=\"eth${ETHCOUNT}\"" >> $UDEVF
+  ETHCOUNT=`expr $ETHCOUNT + 1`
 done
 
 mkdir /etc/network/interfaces.d
