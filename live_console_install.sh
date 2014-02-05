@@ -2,7 +2,7 @@
 
 # using ubuntu-builder console, these are the steps you'll need to configure
 
-GITHUB_USERNAME="myuser"
+GITHUB_USERNAME="jhtran"
 
 BUS_ORDER="06:00.0 06:00.1 03:00.0 03:00.1"
 MGMT_IP="192.168.112.12"
@@ -17,7 +17,8 @@ PUBLIC_GW="75.55.108.1"
 
 
 apt-get update
-apt-get install ethtool ifenslave vlan curl aptitude openssh-server openipmi freeipmi-tools -y
+apt-get git install ethtool ifenslave vlan curl aptitude openssh-server ipmitool -y
+
 add-apt-repository ppa:jared-dominguez/wsmancli
 apt-get update
 apt-get install wsmancli -y
@@ -26,8 +27,6 @@ curl -u $GITHUB_USERNAME -H "Accept: application/vnd.github.raw" "https://api.gi
 curl -u $GITHUB_USERNAME -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/att-cloud/substructure/contents/substructure/management/dell/Create-Virtual-Disk-0.xml" -o /root/Create-Virtual-Disk-0.xml
 
 curl -u $GITHUB_USERNAME -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/att-cloud/substructure/contents/substructure/management/dell/Create-Virtual-Disk-1.xml" -o /root/Create-Virtual-Disk-1.xml
-
-apt-get purge resolvconf
 
 cat<<EOF>/etc/network/interfaces
 auto lo
@@ -94,3 +93,6 @@ iface bond1.2002 inet static
   gateway ${PUBLIC_GW}
   vlan-raw-device bond1
 EOF
+
+sed -i '21i\exit 0' /usr/share/initramfs-tools/scripts/casper-bottom/23networking
+update-initramfs -u -k all
