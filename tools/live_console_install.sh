@@ -64,7 +64,7 @@ iface bond1 inet manual
 source /etc/network/interfaces.d/*
 EOF
 
-UDEVF="/etc/udev/rules.d/70-persistent-net-rules.conf"
+UDEVF="/etc/udev/rules.d/70-persistent-net.rules"
 PREFX='ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="pci", KERNELS=="'
 ETHCOUNT=0
 
