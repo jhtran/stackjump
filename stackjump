@@ -60,7 +60,7 @@ done
 
 echo -e "\n!! This tool should only be run on an Ubuntu workstation     !!"
 echo "!! This code is customized for AT&T environment usage only   !!"
-echo -e "!! Tested only on Precise Pangolin (12.04.3) x86_64          !!\n"
+echo -e "!! Tested only on Precise Pangolin (12.04.4) x86_64          !!\n"
 
 if [ ! $REL ]; then
   REL='precise'
@@ -116,7 +116,7 @@ fi
 ARCH="amd64"
 
 if [ ! $VER]; then
-  VER='12.04.3'
+  VER='12.04.4'
 fi
 DISTURL="http://releases.ubuntu.com"
 ISONAME="ubuntu-$VER-server-$ARCH.iso"

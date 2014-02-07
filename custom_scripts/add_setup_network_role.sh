@@ -96,9 +96,9 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
   },
   "run_list": [
     "recipe[apt]",
-    "recipe[infra-management::subs_bootstrap]",
     "recipe[infra-management::chef-repo]",
-    "recipe[infra-management::setup_ipmi]"
+    "recipe[infra-management::setup_ipmi]",
+    "recipe[infra-management::subs_bootstrap]"
   ],
   "description": "Initial network bonding and vlan convergence",
   "chef_type": "role",
@@ -145,5 +145,4 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
 }
 EOF
 knife role from file /root/extras/chef-repo/roles/*.json
-knife node run_list add $FQDN "role[setup-network]"
-chef-client
+chef-client -o role[setup-bootstrap]
