@@ -145,4 +145,4 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-bootstrap.json
 }
 EOF
 knife role from file /root/extras/chef-repo/roles/*.json
-chef-client -o role[setup-bootstrap]
+chef-client -o role[setup-network]
