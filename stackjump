@@ -4,7 +4,7 @@
 # password hash to set for 'ubuntu' user account on install
 # default set to 'none' spelled out
 source stackjump.config
-MYPASSWD=${UBUNTU_PWHASH:-'$6$Cjxz1rgM$ahShoUXrRY0qabPBMuFSmxRcwqkA2BRmb0B9Dlkzd5BfiunORoayXm3RZCEAsauW50JES9v1GTkkurnXmv8Ey0'}
+MYPASSWD=${ROOT_PWHASH:-'$1$QGbMFugb$P84UiBxDwOx4ny0vjKpBv.'}
 MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
 MYNODENAME=${NODE_NAME:-myjumpnode}
 MYDOMAIN=${DOMAIN_NAME:-mydomain.com}
@@ -178,7 +178,7 @@ echo -e "\nINJECTING PRESEED AND CUSTOM SCRIPTS\n"
 cat preseed.cfg | sed "s/MYPASSWD/$MYPASSWD/" | sed "s/MYNODENAME/$MYNODENAME/" |\
   sed "s/MYDOMAIN/$MYDOMAIN/" | sed "s/MYDEFAULTNIC/$MYDEFAULTNIC/" |\
   sed "s/BOND0IP/$BOND0IP/" | sed "s/BOND0MASK/$BOND0MASK/" |\
-  sed "s/BOND0GW/$BOND0GW/" | sed "s/DISKDEVICE/$DISKDEVICE/" > $INITRD/preseed.cfg
+  sed "s/BOND0GW/$BOND0GW/" | sed "s/DISKDEVICE/$DISKDEVICE/g" > $INITRD/preseed.cfg
 
 for HDIR in "root" "home/ubuntu"; do
   if [ ! -d "$EXTRAS/$HDIR/.ssh" ]; then
