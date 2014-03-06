@@ -1,0 +1,19 @@
+{
+  "run_list": [
+    "recipe[chef-client]",
+    "recipe[infra-management::chef-repo]",
+    "recipe[networking]"
+  ],
+  "reboot-handler": {
+    "post_boot_runlist": [
+      "recipe[infra-management::chef-repo]",
+      "role[chef-server]"
+    ]
+  },
+  "zone": "myzone1",
+  "infra-management": {
+    "ghuser": "my-ro-user",
+    "ghpw": "my-ro-pw",
+    "decryptpw": "my-decrypt-pw"
+  }
+}

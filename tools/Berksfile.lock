@@ -12,20 +12,26 @@
     "yum": {
       "locked_version": "3.0.4"
     },
+    "ssh_known_hosts": {
+      "locked_version": "1.2.0"
+    },
     "networking": {
-      "locked_version": "0.8.4",
-      "git": "https://github.com/att-cloud/cookbook-networking.git",
-      "ref": "341bf16b36475f7dfb273b7220f2ff414829a2d4"
+      "locked_version": "0.8.7",
+      "git": "git@github.com:att-cloud/cookbook-networking.git",
+      "ref": "aed4272d6592066390ad9fa367a014e092f2f373"
     },
     "reboot-handler": {
-      "locked_version": "0.2.3",
-      "git": "https://github.com/att-cloud/cookbook-reboot-handler.git",
-      "ref": "f7e22b7f6261423d24049d478adf23cfc57bf4ef"
+      "locked_version": "0.2.4",
+      "git": "git@github.com:att-cloud/cookbook-reboot-handler.git",
+      "ref": "2b8e2d91278c7d5d4cdc84d94ce7922e392f02e7"
     },
     "infra-management": {
-      "locked_version": "0.0.2",
-      "git": "https://github.com/att-cloud/cookbook-infra-management.git",
-      "ref": "1202067df5aa53df37fb8235318f340609b18c28"
+      "locked_version": "0.0.7",
+      "git": "git@github.com:att-cloud/cookbook-infra-management.git",
+      "ref": "2047447c6061a3d05c863c666fc24493101b18dd"
+    },
+    "partial_search": {
+      "locked_version": "1.0.8"
     },
     "chef_handler": {
       "locked_version": "1.1.4"

@@ -4,7 +4,8 @@ cookbook 'apt'
 cookbook 'build-essential'
 cookbook 'python'
 cookbook 'yum'
+cookbook 'ssh_known_hosts'
 
-cookbook 'networking', github: 'att-cloud/cookbook-networking', protocol: :https
-cookbook 'reboot-handler', github: 'att-cloud/cookbook-reboot-handler', protocol: :https
-cookbook 'infra-management', github: 'att-cloud/cookbook-infra-management', protocol: :https
+cookbook 'networking', github: 'att-cloud/cookbook-networking', protocol: :ssh
+cookbook 'reboot-handler', github: 'att-cloud/cookbook-reboot-handler', protocol: :ssh
+cookbook 'infra-management', github: 'att-cloud/cookbook-infra-management', protocol: :ssh
