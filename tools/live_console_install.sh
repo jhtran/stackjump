@@ -17,7 +17,7 @@ PUBLIC_GW="75.55.108.1"
 
 
 apt-get update
-apt-get install git ethtool ifenslave vlan curl aptitude openssh-server ipmitool -y
+apt-get install python-software-properties git ethtool ifenslave vlan curl aptitude openssh-server ipmitool -y
 
 add-apt-repository ppa:jared-dominguez/wsmancli
 apt-get update
