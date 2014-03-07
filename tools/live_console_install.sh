@@ -98,10 +98,11 @@ EOF
 sed -i '21i\exit 0' /usr/share/initramfs-tools/scripts/casper-bottom/23networking
 update-initramfs -u -k all
 
-for i in "/root" "/home/ubuntu"; do
+for i in /root /home/ubuntu; do
 if [ ! -d $i/.ssh ]; then
-  mkdir -p "i/.ssh
+  mkdir -p $i/.ssh
 fi
+done
 
 echo 'ssh-dss AAAAB3NzaC1kc3MAAACBAOJba+6pCO6cKl3MvDctH1EQwKd+qpLtI3NhEzB3TZLDTDZ59mbThWWdeTAyFiutryysDozUeR50G0OSF0iXfCzQ++ntM/VNrUJDn72IsfEFXv24YAOVhBeM0Voq2hl34Sdcy/UdBxBWRDRbRPp/BaLrQa9ERq030TTLS4FNBG19AAAAFQCJLc5UDT0J+LayGBEhCg8gI1Gz9QAAAIAQL3q7smp3CkB6SpVHyRw4Y4GHCyiMu7qhfEz9lFhDa3OJIyPXgOV4dnIIokCze3YB97hg7cNp3tB4/istRhyoXeQ7/dr1wNCg/5pkOfq9eJJNAt0C6XiVAx7ydAKDG1HW3BU1vEoCaABzJR9S8Z5BOD9MKEPPdeuADpNXsYrbMQAAAIAoOnf+VQC2IHj5yGdMJ8jdeG3u9a8t1UTqTNfl8VwOA1sG6QLiS7HmY1SICLwLZu/7pkTOKK1wkaMPem8WoNabb1oe3ezK/VFgy5P8WifAeTWuESk7j7K65RvfUcb9yjSWf9sqZA439vJssQtC9pYUi/zlAkToC4IzvmtjXUzMxQ== jtran@ubuntu' >> /root/.ssh/authorized_keys
 
