@@ -7,10 +7,10 @@
       "locked_version": "1.4.2"
     },
     "python": {
-      "locked_version": "1.4.4"
+      "locked_version": "1.4.6"
     },
     "yum": {
-      "locked_version": "3.0.4"
+      "locked_version": "3.0.6"
     },
     "ssh_known_hosts": {
       "locked_version": "1.2.0"
@@ -26,15 +26,21 @@
       "ref": "2b8e2d91278c7d5d4cdc84d94ce7922e392f02e7"
     },
     "infra-management": {
-      "locked_version": "0.0.7",
+      "locked_version": "0.0.8",
       "git": "git@github.com:att-cloud/cookbook-infra-management.git",
-      "ref": "2047447c6061a3d05c863c666fc24493101b18dd"
+      "ref": "87b02d6a56b6aa0ce0ac38d21e3bd7878f15fc57"
+    },
+    "yum-epel": {
+      "locked_version": "0.2.0"
     },
     "partial_search": {
-      "locked_version": "1.0.8"
+      "locked_version": "1.0.6"
     },
     "chef_handler": {
       "locked_version": "1.1.4"
+    },
+    "ohai": {
+      "locked_version": "2.0.0"
     }
   }
 }
