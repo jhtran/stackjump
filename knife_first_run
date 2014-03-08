@@ -4,7 +4,7 @@ require 'chef/knife'
 
 homed='/root'
 homechf="#{homed}/.chef"
-repod="#{homed}/extras/chef-repo"
+repod="/opt/chef-repo"
 confd="/etc/chef-server"
 subcommand_loader = Chef::Knife::SubcommandLoader.new(false)
 commands_loaded = subcommand_loader.load_commands
@@ -20,4 +20,5 @@ instance.config[:admin_client_key]="#{confd}/chef-webui.pem"
 instance.config[:validation_client_name]='chef-validator'
 instance.config[:validation_key]="#{confd}/chef-validator.pem"
 instance.config[:repository]="#{repod}"
+instance.config[:environment]="production"
 instance.run_with_pretty_exceptions
