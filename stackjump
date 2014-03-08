@@ -1,22 +1,6 @@
 #!/bin/bash
 
 
-# password hash to set for 'ubuntu' user account on install
-# default set to 'none' spelled out
-source stackjump.config
-MYPASSWD=${ROOT_PWHASH:-'$1$QGbMFugb$P84UiBxDwOx4ny0vjKpBv.'}
-MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
-MYNODENAME=${NODE_NAME:-myjumpnode}
-MYDOMAIN=${DOMAIN_NAME:-mydomain.com}
-MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
-MYCHEFSERVERVER=${CHEF_SERVER_VER:-11.0.8-1}
-MYDEFAULTNIC=${DEFAULT_NIC:-eth0}
-DISKDEVICE=${DISK_DEVICE:-'\/dev\/sda'}
-BOND0IP=${BOND0_IP:-192.168.112.11}
-BOND0MASK=${BOND0_NETMASK:-255.255.255.128}
-BOND0GW=${BOND0_GATEWAY:-192.168.112}
-BOND0BUSORDER=${BOND0_BUSORDER:-'"0000:00:05.0","0000:00:06.0","0000:00:07.0","0000:00:08.0"'}
-
 WHOAMI=`whoami`
 if [ $WHOAMI != "root" ]; then
   echo "Must be run as sudo root"
@@ -25,6 +9,7 @@ fi
 
 USAGE="$0 options
   -d dry run don't create iso
+  -C config file
   -c chef repo dir
   -r release_codename (oneiric, natty, maverick, etc)
   -v release_version
@@ -38,6 +23,8 @@ while [ $1 ];do
   case $1 in
     -d) shift
         DRYRUN=1;;
+    -C) shift
+        CONFIG=$1;;
     -c) shift
         CHEFREPO=$1;;
     -r) shift
@@ -58,6 +45,26 @@ while [ $1 ];do
   esac
   shift
 done
+
+CONFIG=${CONFIG:-stackjump.config}
+if [ ! -f $CONFIG ]; then
+  echo -e "\n$CONFIG not a valid file"
+  exit 1
+fi
+source $CONFIG
+MYPASSWD=${ROOT_PWHASH:-'$1$QGbMFugb$P84UiBxDwOx4ny0vjKpBv.'}
+MYKNIFEPASSWD=${KNIFE_PWSTR:-mypassword}
+MYNODENAME=${NODE_NAME:-myjumpnode}
+MYDOMAIN=${DOMAIN_NAME:-mydomain.com}
+MYCHEFCLIENTVER=${CHEF_CLIENT_VER:-11.8.0-1}
+MYCHEFSERVERVER=${CHEF_SERVER_VER:-11.0.8-1}
+MYDEFAULTNIC=${DEFAULT_NIC:-eth0}
+DISKDEVICE=${DISK_DEVICE:-'\/dev\/sda'}
+BOND0IP=${BOND0_IP:-192.168.112.11}
+BOND0MASK=${BOND0_NETMASK:-255.255.255.128}
+BOND0GW=${BOND0_GATEWAY:-192.168.112}
+BOND0BUSORDER=${BOND0_BUSORDER:-'"0000:00:05.0","0000:00:06.0","0000:00:07.0","0000:00:08.0"'}
+
 
 echo -e "\n!! This tool should only be run on an Ubuntu workstation     !!"
 echo "!! This code is customized for AT&T environment usage only   !!"
@@ -195,7 +202,7 @@ fi
 cat knife_first_run | sed "s/MYPASSWORD/$MYKNIFEPASSWD/g" |\
    sed "s/MYJUMPNODE/${MYNODENAME}_admin/g" > $EXTRAS/root/knife_first_run
 
-cp stackjump.config $ISODIR_EXTRAS/stackjump.config
+cp $CONFIG $ISODIR_EXTRAS/stackjump.config
 
 # DOWNLOAD LATEST CHEF OMNIBUS PACKAGES
 
