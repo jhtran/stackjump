@@ -8,10 +8,10 @@ export HOME="/root"
 export FQDN=`hostname -f`
 update-grub
 dpkg -i /root/extras/*.deb # install chef-client|server
-if [ ! -d /etc/chef/chef-server ]; then
-  mkdir -p /etc/chef/chef-server
+if [ ! -d /etc/chef-server ]; then
+  mkdir -p /etc/chef-server
 fi
-cat<<EOF > /etc/chef/chef-server/chef-server.rb
+cat<<EOF > /etc/chef-server/chef-server.rb
 server_name = "192.168.112.11"
 api_fqdn server_name
 nginx['url'] = "https://#{server_name}"
@@ -35,6 +35,7 @@ if [ -d /root/.chef ]; then
 fi
 /root/knife_first_run
 knife configure client /etc/chef && chef-client
+echo "environment 'production'" >> /etc/chef/client.rb
 knife cookbook upload -o /root/extras/chef-repo/cookbooks --all
 knife role from file /root/extras/chef-repo/roles/*.json
 knife environment from file /root/extras/chef-repo/environments/*.json
