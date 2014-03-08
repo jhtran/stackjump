@@ -49,7 +49,7 @@ cat<<EOF > /root/extras/chef-repo/roles/setup-network.json
       "enabled_role": "setup-network",
       "post_boot_runlist": [
         "recipe[chef-client]",
-        "role[setup-bootstrap]"
+        "recipe[infra-management::upload_data_bags]"
       ]
     },
     "networking": {
