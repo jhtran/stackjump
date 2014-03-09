@@ -7,13 +7,18 @@
       "locked_version": "1.4.2"
     },
     "python": {
-      "locked_version": "1.4.6"
+      "locked_version": "1.4.4"
     },
     "yum": {
-      "locked_version": "3.0.6"
+      "locked_version": "3.0.4"
     },
     "ssh_known_hosts": {
       "locked_version": "1.2.0"
+    },
+    "ohai": {
+      "locked_version": "1.1.7",
+      "git": "git@github.com:att-cloud/cookbook-ohai.git",
+      "ref": "ad3bf04e61f210df0d1de72b44904ac8f7b619a4"
     },
     "networking": {
       "locked_version": "0.8.7",
@@ -26,21 +31,21 @@
       "ref": "2b8e2d91278c7d5d4cdc84d94ce7922e392f02e7"
     },
     "infra-management": {
-      "locked_version": "0.0.8",
+      "locked_version": "0.0.9",
       "git": "git@github.com:att-cloud/cookbook-infra-management.git",
-      "ref": "87b02d6a56b6aa0ce0ac38d21e3bd7878f15fc57"
-    },
-    "yum-epel": {
-      "locked_version": "0.2.0"
+      "ref": "a88aa2eaa8d71cc4f4b42e1a2834eca47dc7e881"
     },
     "partial_search": {
-      "locked_version": "1.0.6"
+      "locked_version": "1.0.8"
+    },
+    "ipmitool": {
+      "locked_version": "1.1.0"
+    },
+    "lldpd": {
+      "locked_version": "1.0.0"
     },
     "chef_handler": {
       "locked_version": "1.1.4"
-    },
-    "ohai": {
-      "locked_version": "2.0.0"
     }
   }
 }

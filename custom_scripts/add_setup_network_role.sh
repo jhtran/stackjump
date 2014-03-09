@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source /root/extras/stackjump.config
+export FQDN=`hostname -f`
 
 BUSORDER=${BUSORDER:-'"0000:00:05.0","0000:00:06.0","0000:00:07.0","0000:00:08.0"'}
 
@@ -23,10 +24,38 @@ GHUSER=${GH_USER:-myghuser}
 GHPW=${GH_PW:-myghpassword}
 SUBSDECRYPTPW=${SUBS_DECRYPT_PW:-subsdecryptpassword}
 
+ROLESD="/root/extras/chef-repo/roles"
+cat<<EOF > $ROLESD/setup-network.json
+{
+  "name": "setup-network",
+  "default_attributes": {
+  },
+  "json_class": "Chef::Role",
+  "env_run_lists": {
+  },
+  "run_list": [
+    "recipe[networking]"
+  ],
+  "description": "Initial network bonding and vlan convergence",
+  "chef_type": "role",
+  "override_attributes": {
+    "reboot-handler": {
+      "enabled_role": "setup-network",
+      "post_boot_runlist": [
+        "recipe[chef-client]",
+        "recipe[infra-management::upload_data_bags]"
+      ]
+    }
+  }
+}
+EOF
+knife role from file $ROLESD/setup-network.json
+
 JUMPF="/root/extras/first_jump.json"
 cat<<EOF > $JUMPF
 {
   "run_list": [
+    "role[setup-network]"
   ],
   "reboot-handler": {
   },
@@ -66,4 +95,4 @@ cat<<EOF > $JUMPF
 EOF
 
 chef-client -j $JUMPF
-chef-client -o networking
+chef-client
