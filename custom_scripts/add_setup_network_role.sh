@@ -42,7 +42,7 @@ cat<<EOF > $ROLESD/setup-network.json
     "reboot-handler": {
       "enabled_role": "setup-network",
       "post_boot_runlist": [
-        "role[chef-server]"
+        "recipe[infra-management::upload_data_bags]"
       ]
     }
   }

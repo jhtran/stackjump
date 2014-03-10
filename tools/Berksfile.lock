@@ -7,10 +7,10 @@
       "locked_version": "1.4.2"
     },
     "python": {
-      "locked_version": "1.4.4"
+      "locked_version": "1.4.6"
     },
     "yum": {
-      "locked_version": "3.0.4"
+      "locked_version": "3.0.6"
     },
     "ssh_known_hosts": {
       "locked_version": "1.2.0"
@@ -35,8 +35,11 @@
       "git": "git@github.com:att-cloud/cookbook-infra-management.git",
       "ref": "1d45243dec0aa22aee2f9704143c094c5455adf3"
     },
+    "yum-epel": {
+      "locked_version": "0.2.0"
+    },
     "partial_search": {
-      "locked_version": "1.0.8"
+      "locked_version": "1.0.6"
     },
     "ipmitool": {
       "locked_version": "1.1.0"
