@@ -33,6 +33,14 @@ Your chef-repo must be in the following directory structure:
 * chef-repo/cookbooks
 * TODO: databags
 
+## Preparation
+
+Download chef-repo and install minimum cookbooks
+
+   git clone git@github.com:att-cloud/chef-repo
+
+   cd stackjump/tools && berks update && berks install --path=/path/to/chef-repo/cookbooks
+
 ## Usage
 
 Before you run the command, edit the 'stackjump.config' and customize any of the parameters to fit your needs.
