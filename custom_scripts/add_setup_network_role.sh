@@ -42,7 +42,7 @@ cat<<EOF > $ROLESD/setup-network.json
     "reboot-handler": {
       "enabled_role": "setup-network",
       "post_boot_runlist": [
-        "recipe[infra-management::upload_data_bags]"
+        "role[handler-upload_data_bags]"
       ]
     }
   }
@@ -85,7 +85,7 @@ exec bash /root/extras/is_vm
 EOF
 fi
 
-JUMPF="/root/extras/first_jump.json"
+JUMPF="$ROLESD/first_jump.json"
 cat<<EOF > $JUMPF
 {
   "run_list": [
@@ -126,6 +126,62 @@ cat<<EOF > $JUMPF
   }
 }
 EOF
+
+CHEFR_HANDLER="$ROLESD/handler-chef-repo.json"
+cat<<EOF > $CHEFR_HANDLER
+{
+  "name": "handler-chef-repo",
+  "default_attributes": {
+  },
+  "json_class": "Chef::Role",
+  "env_run_lists": {
+  },
+  "run_list": [
+    "recipe[infra-management::chef-repo]"
+  ],
+  "description": "chef-repo upload on first install",
+  "chef_type": "role",
+  "override_attributes": {
+    "run_list_handler": {
+      "enabled_role": "handler-chef-repo",
+      "post_boot_runlist": [
+        "role[chef-server]",
+        "role[infra-access]",
+        "role[${ZONE}]",
+        "role[infra-auth-slave]",
+        "recipe[infra-auth::client]"
+      ]
+    }
+  }
+}
+EOF
+knife role from file $CHEFR_HANDLER
+
+DBAG_HANDLER="$ROLESD/handler-upload_data_bags.json"
+cat<<EOF > $DBAG_HANDLER
+{
+  "name": "handler-upload_data_bags",
+  "default_attributes": {
+  },
+  "json_class": "Chef::Role",
+  "env_run_lists": {
+  },
+  "run_list": [
+    "recipe[infra-management::upload_data_bags]"
+  ],
+  "description": "data bag upload on first install",
+  "chef_type": "role",
+  "override_attributes": {
+    "run_list_handler": {
+      "enabled_role": "handler-upload_data_bags",
+      "post_boot_runlist": [
+        "role[handler-chef-repo]"
+      ]
+    }
+  }
+}
+EOF
+knife role from file $DBAG_HANDLER
 
 zonerolef="$ROLESD/$ZONE.json"
 if [ ! -f $zonerolef ]; then
