@@ -15,8 +15,8 @@ MGMT_CIDR=${MANAGEMENT_CIDR:-'192.168.0.0/20'}
 BOND12002IP=${BOND1_2002_IP:-75.55.108.11}
 BOND12002MASK=${BOND1_2002_NETMASK:-255.255.240.0}
 DEFAULTGW=${DEFAULT_GATEWAY:-75.55.108.1}
-BOND12001IP=${BOND1_2002_IP:-192.168.128.11}
-BOND12001MASK=${BOND1_2002_NETMASK:-255.255.255.128}
+BOND12001IP=${BOND1_2001_IP:-192.168.128.11}
+BOND12001MASK=${BOND1_2001_NETMASK:-255.255.255.128}
 
 ZONE=${ZONE:-myzone}
 IS_VM=${IS_VM:-false}  # is this a vm? or bare metal?
@@ -126,6 +126,76 @@ cat<<EOF > $JUMPF
   }
 }
 EOF
+
+zonerolef="$ROLESD/$ZONE.json"
+if [ ! -f $zonerolef ]; then
+cat<<EOF > $zonerolef
+{
+  "name": "${ZONE}",
+  "default_attributes": {
+    "database-backup": {
+      "staas": {
+        "directory": "${ZONE}"
+      },
+      "cron": {
+        "hour": "4,12,20",
+        "minute": "38"
+      }
+    },
+    "dns": {
+      "public_forward_zone": "${ZONE}.attcompute.com",
+      "public_forward_domain": "${ZONE}.attcompute.com"
+    },
+    "graphite": {
+      "server_hostname": "monitoring.${ZONE}.attcompute.com",
+      "cas_root_proxy_url": "https://monitoring.${ZONE}.attcompute.com:8443"
+    },
+    "infra-monitoring": {
+      "ipmi": {
+      },
+      "ssl_checks": {
+        "additional_hosts": [
+          "monitoring.${ZONE}.attcompute.com:443",
+          "dashboard.${ZONE}.attcompute.com:443"
+        ]
+      }
+    },
+    "nagios": {
+      "server_hostname": "monitoring.${ZONE}.attcompute.com",
+      "cas_root_proxy_url": "https://monitoring.${ZONE}.attcompute.com"
+    },
+    "IPS": {
+      "network": "192.168.1.0",
+      "netmask": "255.255.255.0",
+      "bond": "bond0",
+      "primary_gw": "192.168.112.129",
+      "secondary_gw": "192.168.112.193"
+    },
+    "vizgems": {
+    },
+    "vms": {
+      "sysconfig": {
+        "shared_volume": "/vol/gridcentric",
+        "vms_user": "libvirt-qemu",
+        "vms_group": "kvm"
+      }
+    }
+  },
+  "json_class": "Chef::Role",
+  "env_run_lists": {
+  },
+  "run_list": [
+    "recipe[openstack-base::${ZONE}]",
+    "role[base]"
+  ],
+  "description": "A role that all ${ZONE} nodes will have.",
+  "chef_type": "role",
+  "override_attributes": {
+  }
+}
+EOF
+  knife role from file $zonerolef
+fi
 
 chef-client -j $JUMPF
 chef-client

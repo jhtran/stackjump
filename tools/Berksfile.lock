@@ -33,7 +33,7 @@
     "infra-management": {
       "locked_version": "0.0.9",
       "git": "git@github.com:att-cloud/cookbook-infra-management.git",
-      "ref": "f0e84bd0cce76f9590d956533ee7f97123b2f04e"
+      "ref": "1d45243dec0aa22aee2f9704143c094c5455adf3"
     },
     "partial_search": {
       "locked_version": "1.0.8"
