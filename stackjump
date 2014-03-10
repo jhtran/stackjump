@@ -11,6 +11,7 @@ USAGE="$0 options
   -d dry run don't create iso
   -C config file
   -c chef repo dir
+  -os os only - no custom scripts no chef
   -r release_codename (oneiric, natty, maverick, etc)
   -v release_version
   -rl chef run list for jump node (comma delimited)
@@ -27,6 +28,8 @@ while [ $1 ];do
         CONFIG=$1;;
     -c) shift
         CHEFREPO=$1;;
+    -os) shift
+        OSONLY=1;;
     -r) shift
         REL=$1;;
     -v) shift
@@ -93,22 +96,23 @@ for DIR in $MYTMPDIR $DOWNLOADS $ISODIR $INITRD $MOUNTDIR $CUSTOM_SCRIPTSD $MYCO
 done
 
 ## SANITY CHECKS ##
-
-if [ ! $CHEFREPO ]; then 
-  echo -e "\nEnsure that you've specified a chef-repo directory using '-c';  At minimum it needs to contain 'networking' and 'reboot-handler' cookbooks\n"
-  exit 1
-fi
-if [ ! -d $CHEFREPO ]; then
-  echo -e "\n$CHEFREPO is not a valid directory"
-  exit 1
-fi
-COOKBOOKSD="$CHEFREPO/cookbooks"
-for i in $REQUIRED_COOKBOOKS; do
-  if [ ! -f "$COOKBOOKSD/$i/README.md" ]; then
-    echo -e "\nMISSING OR INVALID COOKBOOK: '$COOKBOOKSD/$i' "
+if [ ! $OSONLY ]; then
+  if [ ! $CHEFREPO ]; then 
+    echo -e "\nEnsure that you've specified a chef-repo directory using '-c';  At minimum it needs to contain 'networking' and 'reboot-handler' cookbooks\n"
     exit 1
   fi
-done
+  if [ ! -d $CHEFREPO ]; then
+    echo -e "\n$CHEFREPO is not a valid directory"
+    exit 1
+  fi
+  COOKBOOKSD="$CHEFREPO/cookbooks"
+  for i in $REQUIRED_COOKBOOKS; do
+    if [ ! -f "$COOKBOOKSD/$i/README.md" ]; then
+      echo -e "\nMISSING OR INVALID COOKBOOK: '$COOKBOOKSD/$i' "
+      exit 1
+    fi
+  done
+fi
 
 for BIN in fakeroot cpio mkisofs curl; do 
   if [ ! `which $BIN` ]; then
@@ -193,7 +197,9 @@ for HDIR in "root" "home/ubuntu"; do
   fi
   cp authorized_keys $EXTRAS/$HDIR/.ssh/authorized_keys
 done
-cp first_run.sh late_command.sh $EXTRAS/root
+if [ ! $OSONLY ]; then
+  cp first_run.sh late_command.sh $EXTRAS/root
+fi
 if [ $VERBOSE ]; then
   rsync -av custom_scripts/ $CUSTOM_SCRIPTSD/
 else
@@ -205,30 +211,31 @@ cat knife_first_run | sed "s/MYPASSWORD/$MYKNIFEPASSWD/g" |\
 cp $CONFIG $ISODIR_EXTRAS/stackjump.config
 
 # DOWNLOAD LATEST CHEF OMNIBUS PACKAGES
-
-OMNIBUS_URL="https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu"
-IFS=. read -r maj min _ <<< "$VER"
-OMNI_VER="$maj.$min"
-OMNI_ARCH='x86_64'
-CHEFCLIENT="chef_$MYCHEFCLIENTVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
-CHEFC_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFCLIENT"
-if [ -f $DOWNLOADS/$CHEFCLIENT ]; then
-  echo -e "\n$DOWNLOADS/$CHEFCLIENT exists - skipping chef client download\n"
-else
-  echo -e "\nDownloading CHEF-CLIENT OMNIBUS $DOWNLOADS/$CHEFCLIENT\n"
-  curl $CHEFC_URL -o $DOWNLOADS/$CHEFCLIENT
+if [ ! $OSONLY ]; then
+  OMNIBUS_URL="https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu"
+  IFS=. read -r maj min _ <<< "$VER"
+  OMNI_VER="$maj.$min"
+  OMNI_ARCH='x86_64'
+  CHEFCLIENT="chef_$MYCHEFCLIENTVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+  CHEFC_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFCLIENT"
+  if [ -f $DOWNLOADS/$CHEFCLIENT ]; then
+    echo -e "\n$DOWNLOADS/$CHEFCLIENT exists - skipping chef client download\n"
+  else
+    echo -e "\nDownloading CHEF-CLIENT OMNIBUS $DOWNLOADS/$CHEFCLIENT\n"
+    curl $CHEFC_URL -o $DOWNLOADS/$CHEFCLIENT
+  fi
+  cp $DOWNLOADS/$CHEFCLIENT $ISODIR_EXTRAS/$CHEFCLIENT
+  
+  CHEFSERVER="chef-server_$MYCHEFSERVERVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
+  CHEFS_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFSERVER"
+  if [ -f $DOWNLOADS/$CHEFSERVER ]; then
+    echo -e "\n$DOWNLOADS/$CHEFSERVER exists - skipping chef server download\n"
+  else
+    echo -e "\nDownloading CHEF-SERVER OMNIBUS $DOWNLOADS/$CHEFSERVER\n"
+    curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
+  fi
+  cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
 fi
-cp $DOWNLOADS/$CHEFCLIENT $ISODIR_EXTRAS/$CHEFCLIENT
-
-CHEFSERVER="chef-server_$MYCHEFSERVERVER.ubuntu.${OMNI_VER}_${ARCH}.deb"
-CHEFS_URL="$OMNIBUS_URL/$OMNI_VER/$OMNI_ARCH/$CHEFSERVER"
-if [ -f $DOWNLOADS/$CHEFSERVER ]; then
-  echo -e "\n$DOWNLOADS/$CHEFSERVER exists - skipping chef server download\n"
-else
-  echo -e "\nDownloading CHEF-SERVER OMNIBUS $DOWNLOADS/$CHEFSERVER\n"
-  curl $CHEFS_URL -o $DOWNLOADS/$CHEFSERVER
-fi
-cp $DOWNLOADS/$CHEFSERVER $ISODIR_EXTRAS/$CHEFSERVER
 
 ## AT&T SPECIFIC - DOWNLOAD VLAN & IFENSLAVE PKGS FOR COOKBOOK-NETWORKING
   # NEEDS TO BE IMPROVED - WHAT IF NOT RUNNING FROM UBUNTU WORKSTATION AND OR DIFF RELEASE?
@@ -250,40 +257,42 @@ for PKG in ifenslave-2.6 vlan; do
   cp $DOWNLOADS/$PKGN $ISODIR_EXTRAS/$PKGN
 done
 
-## IMPORT THE CHEF REPO
-if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
-  echo -e "\nCOPYING EXTRAS $CHEFREPO...\n"
-  if [ $VERBOSE ]; then
-    rsync -av $CHEFREPO/ $MYCHEFREPO/
-  else
-    rsync -av $CHEFREPO/ $MYCHEFREPO/ > /dev/null 2>&1
-  fi
-fi
-
-BASE_COOKBOOKS="chef-client logrotate cron chef_handler"
-for i in $BASE_COOKBOOKS; do
-  COOKBOOKD="$MYCOOKBOOKSD/$i"
-  if [ ! -f "$COOKBOOKD/README.md" ]; then
-    if [ ! -d "$COOKBOOKD" ]; then
-      mkdir -p $COOKBOOKD
-    fi
-    if [ -f "$DOWNLOADS/$i/README.md" ]; then
-      echo -e "\n$DOWNLOADS/$i cookbook already exists - skipping download\n"
-    else
-      echo -e "\nDownloading $i cookbook from github\n"
-      OUTPUT=`(cd $MYTMPDIR; curl -kLs https://github.com/opscode-cookbooks/$i/tarball/master | tar -zxv)`
-      DLTMP="$MYTMPDIR/`echo $OUTPUT|awk '{print $1}'`"
-      mv $DLTMP $DOWNLOADS/$i
-    fi
+if [ ! $OSONLY ]; then
+  ## IMPORT THE CHEF REPO
+  if [ ! -z $CHEFREPO ] && [ -d $CHEFREPO ]; then
+    echo -e "\nCOPYING EXTRAS $CHEFREPO...\n"
     if [ $VERBOSE ]; then
-      rsync -av $DOWNLOADS/$i/ $COOKBOOKD/
+      rsync -av $CHEFREPO/ $MYCHEFREPO/
     else
-      rsync -av $DOWNLOADS/$i/ $COOKBOOKD/ > /dev/null 2>&1
+      rsync -av $CHEFREPO/ $MYCHEFREPO/ > /dev/null 2>&1
     fi
-  else
-    echo -e "\n$COOKBOOKD cookbook already exists - skipping download\n"
   fi
-done
+  
+  BASE_COOKBOOKS="chef-client logrotate cron chef_handler"
+  for i in $BASE_COOKBOOKS; do
+    COOKBOOKD="$MYCOOKBOOKSD/$i"
+    if [ ! -f "$COOKBOOKD/README.md" ]; then
+      if [ ! -d "$COOKBOOKD" ]; then
+        mkdir -p $COOKBOOKD
+      fi
+      if [ -f "$DOWNLOADS/$i/README.md" ]; then
+        echo -e "\n$DOWNLOADS/$i cookbook already exists - skipping download\n"
+      else
+        echo -e "\nDownloading $i cookbook from github\n"
+        OUTPUT=`(cd $MYTMPDIR; curl -kLs https://github.com/opscode-cookbooks/$i/tarball/master | tar -zxv)`
+        DLTMP="$MYTMPDIR/`echo $OUTPUT|awk '{print $1}'`"
+        mv $DLTMP $DOWNLOADS/$i
+      fi
+      if [ $VERBOSE ]; then
+        rsync -av $DOWNLOADS/$i/ $COOKBOOKD/
+      else
+        rsync -av $DOWNLOADS/$i/ $COOKBOOKD/ > /dev/null 2>&1
+      fi
+    else
+      echo -e "\n$COOKBOOKD cookbook already exists - skipping download\n"
+    fi
+  done
+fi
 
 # BUILD INITRD.GZ
 echo -e "\nBUILDING INITRD.GZ...\n"

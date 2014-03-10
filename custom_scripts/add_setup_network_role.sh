@@ -42,8 +42,7 @@ cat<<EOF > $ROLESD/setup-network.json
     "reboot-handler": {
       "enabled_role": "setup-network",
       "post_boot_runlist": [
-        "recipe[chef-client]",
-        "recipe[infra-management::upload_data_bags]"
+        "role[chef-server]"
       ]
     }
   }
@@ -93,8 +92,6 @@ cat<<EOF > $JUMPF
     "role[setup-network]"
   ],
   $CUSTOM_IPRULES
-  "reboot-handler": {
-  },
   "zone": "${ZONE}",
   "infra-management": {
     "ghuser": "${GHUSER}",
