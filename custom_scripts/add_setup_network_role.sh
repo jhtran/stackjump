@@ -51,12 +51,48 @@ cat<<EOF > $ROLESD/setup-network.json
 EOF
 knife role from file $ROLESD/setup-network.json
 
+CUSTOM_IPRULES=''
+if [ $IS_VM = true ]; then
+  read -r -d '' CUSTOM_IPRULES<<EOF
+  "iptables": {
+    "input_rules": [
+      "-A INPUT -i eth4 -j ACCEPT",
+      "-A INPUT -i eth4 -m state --state RELATED,ESTABLISHED -j ACCEPT",
+      "-A INPUT -i eth4 -p tcp --dport 22 -j ACCEPT"
+    ]
+  },
+EOF
+
+  cat<<EOF > /root/extras/is_vm
+sed -i 's,gateway.*,,g' /etc/network/interfaces.d/bond1.2002
+cat<<EOH>> /etc/network/interfaces
+auto eth4
+iface eth4 inet dhcp
+EOH
+route delete -net 0.0.0.0/0
+ifdown eth4 --force
+ifup eth4
+EOF
+
+  chmod 755 /root/extras/is_vm
+  cat<<EOF > /etc/init/is_vm.conf
+description "remove default gw of lacp bond when using vm"
+
+start on starting networking
+
+task
+
+exec bash /root/extras/is_vm
+EOF
+fi
+
 JUMPF="/root/extras/first_jump.json"
 cat<<EOF > $JUMPF
 {
   "run_list": [
     "role[setup-network]"
   ],
+  $CUSTOM_IPRULES
   "reboot-handler": {
   },
   "zone": "${ZONE}",

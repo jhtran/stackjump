@@ -46,33 +46,7 @@ sleep 2
 chef-client
 echo -e "\nCHEF & KNIFE INSTALLED AND CONFIGURED\n"
 
-# VM manipulation to allow internet because bond1.2002 uses lacp
-# bring up a 5th network interface in the vm and use it for internet
-if [ $IS_VM == true ] ;then
-  ISVM_SCRIPT="/root/extras/is_vm.sh"
-  cat <<EOF > $ISVM_SCRIPT
-#!/bin/bash
-intf="/etc/network/interfaces"
-bondintf="/etc/network/interfaces.d/bond1.2002"
-if [ -f $bondintf ]; then
-  sed -i 's,gateway.*,,g' $intf
-fi
-grep eth4 $intf > /dev/null 2>&1
-if [ $? != 0 ]; then
-  cat <<EOH >> $intf
-auto eth4
-iface eth4 inet dhcp
-EOH
-fi
-ifdown eth4 --force
-ifup eth4
-chef-client
-EOF
-  chmod 755 $ISVM_SCRIPT
-  sed -i "s,sh /root/first_run.sh,bash $ISVM_SCRIPT," /etc/rc.local
-else
-  sed -i 's,sh /root/first_run.sh,chef-client,' /etc/rc.local
-fi
+sed -i 's,sh /root/first_run.sh,chef-client,' /etc/rc.local
 
 # *** CUSTOM SCRIPTS EXECUTE ***
 CUSTOM_SCRIPTD="/root/extras/custom_scripts"
