@@ -10,3 +10,4 @@ cookbook 'ohai', github: 'att-cloud/cookbook-ohai', protocol: :ssh
 cookbook 'networking', github: 'att-cloud/cookbook-networking', protocol: :ssh
 cookbook 'reboot-handler', github: 'att-cloud/cookbook-reboot-handler', protocol: :ssh
 cookbook 'infra-management', github: 'att-cloud/cookbook-infra-management', protocol: :ssh
+cookbook 'run_list_handler', github: 'att-cloud/cookbook-run_list_handler', protocol: :ssh

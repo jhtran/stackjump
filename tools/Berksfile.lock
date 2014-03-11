@@ -35,11 +35,16 @@
       "git": "git@github.com:att-cloud/cookbook-infra-management.git",
       "ref": "1d45243dec0aa22aee2f9704143c094c5455adf3"
     },
+    "run_list_handler": {
+      "locked_version": "0.0.1",
+      "git": "git@github.com:att-cloud/cookbook-run_list_handler.git",
+      "ref": "2445056f3c0bb7d626b95d5880f0fe49216cde33"
+    },
     "yum-epel": {
-      "locked_version": "0.2.0"
+      "locked_version": "0.3.4"
     },
     "partial_search": {
-      "locked_version": "1.0.6"
+      "locked_version": "1.0.8"
     },
     "ipmitool": {
       "locked_version": "1.1.0"
