@@ -34,6 +34,7 @@ cat<<EOF > $ROLESD/setup-network.json
   "env_run_lists": {
   },
   "run_list": [
+    "recipe[chef-client]",
     "recipe[networking]"
   ],
   "description": "Initial network bonding and vlan convergence",
@@ -42,7 +43,7 @@ cat<<EOF > $ROLESD/setup-network.json
     "reboot-handler": {
       "enabled_role": "setup-network",
       "post_boot_runlist": [
-        "role[handler-upload_data_bags]"
+        "role[INSTALLATION_PENDING-upload_data_bags]"
       ]
     }
   }
@@ -127,10 +128,10 @@ cat<<EOF > $JUMPF
 }
 EOF
 
-CHEFR_HANDLER="$ROLESD/handler-chef-repo.json"
+CHEFR_HANDLER="$ROLESD/INSTALLATION_PENDING-chef-repo.json"
 cat<<EOF > $CHEFR_HANDLER
 {
-  "name": "handler-chef-repo",
+  "name": "INSTALLATION_PENDING-chef-repo",
   "default_attributes": {
   },
   "json_class": "Chef::Role",
@@ -143,13 +144,13 @@ cat<<EOF > $CHEFR_HANDLER
   "chef_type": "role",
   "override_attributes": {
     "run_list_handler": {
-      "enabled_role": "handler-chef-repo",
+      "enabled_role": "INSTALLATION_PENDING-chef-repo",
       "post_boot_runlist": [
         "role[chef-server]",
-        "role[infra-access]",
+        "recipe[infra-auth::client]",
         "role[${ZONE}]",
-        "role[infra-auth-slave]",
-        "recipe[infra-auth::client]"
+        "role[infra-access]",
+        "role[infra-auth-slave]"
       ]
     }
   }
@@ -157,10 +158,10 @@ cat<<EOF > $CHEFR_HANDLER
 EOF
 knife role from file $CHEFR_HANDLER
 
-DBAG_HANDLER="$ROLESD/handler-upload_data_bags.json"
+DBAG_HANDLER="$ROLESD/INSTALLATION_PENDING-upload_data_bags.json"
 cat<<EOF > $DBAG_HANDLER
 {
-  "name": "handler-upload_data_bags",
+  "name": "INSTALLATION_PENDING-upload_data_bags",
   "default_attributes": {
   },
   "json_class": "Chef::Role",
@@ -173,9 +174,9 @@ cat<<EOF > $DBAG_HANDLER
   "chef_type": "role",
   "override_attributes": {
     "run_list_handler": {
-      "enabled_role": "handler-upload_data_bags",
+      "enabled_role": "INSTALLATION_PENDING-upload_data_bags",
       "post_boot_runlist": [
-        "role[handler-chef-repo]"
+        "role[INSTALLATION_PENDING-chef-repo]"
       ]
     }
   }
