@@ -65,10 +65,13 @@ EOF
 
   cat<<EOF > /root/extras/is_vm
 sed -i 's,gateway.*,,g' /etc/network/interfaces.d/bond1.2002
+grep eth4 /etc/network/interfaces
+if [ $? != 0 ]; then
 cat<<EOH>> /etc/network/interfaces
 auto eth4
 iface eth4 inet dhcp
 EOH
+fi
 route delete -net 0.0.0.0/0
 ifdown eth4 --force
 ifup eth4

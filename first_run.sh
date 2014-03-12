@@ -46,7 +46,7 @@ sleep 2
 chef-client
 echo -e "\nCHEF & KNIFE INSTALLED AND CONFIGURED\n"
 
-sed -i 's,sh /root/first_run.sh,exit 0,' /etc/rc.local
+sed -i 's,sh /root/first_run.sh,chef-client,' /etc/rc.local
 
 # *** CUSTOM SCRIPTS EXECUTE ***
 CUSTOM_SCRIPTD="/root/extras/custom_scripts"
