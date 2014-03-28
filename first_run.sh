@@ -1,10 +1,13 @@
-#!/bin/sh
+#!/bin/bash
 
 # stackjump default first_run.sh
 # DO NOT MODIFY THIS FILE
 # any custom commands should be added as a script in 'custom_scripts' directory
 
 source /root/extras/stackjump.config
+BOND0IP=${BOND0_IP:-192.168.112.11}
+export $BOND0IP
+echo $BOND0IP
 
 export HOME="/root"
 export FQDN=`hostname -f`
@@ -14,7 +17,7 @@ if [ ! -d /etc/chef-server ]; then
   mkdir -p /etc/chef-server
 fi
 cat<<EOF > /etc/chef-server/chef-server.rb
-server_name = "192.168.112.11"
+server_name = "$BOND0IP"
 api_fqdn server_name
 nginx['url'] = "https://#{server_name}"
 nginx['server_name'] = server_name
