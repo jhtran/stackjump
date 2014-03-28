@@ -38,8 +38,9 @@ Your chef-repo must be in the following directory structure:
 Download chef-repo and install minimum cookbooks
 
    git clone git@github.com:att-cloud/chef-repo
+   cd chef-repo && git checkout stable/grizzly
 
-   cd stackjump/tools && berks update && berks install --path=/path/to/chef-repo/cookbooks
+   cd /path/to/stackjump/tools && berks install --path=/path/to/chef-repo/cookbooks
 
 ## Usage
 
